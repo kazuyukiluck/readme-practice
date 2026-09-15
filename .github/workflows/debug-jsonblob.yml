@@ -60,3 +60,19 @@ jobs:
             -H "Origin: https://kazuyukiluck.github.io" \
             -d '{"hello":"world"}'
         continue-on-error: true
+
+      - name: jsonbin.io - CORS preflight (OPTIONS)
+        run: |
+          curl -sS -i -X OPTIONS "https://api.jsonbin.io/v3/b" \
+            -H "Origin: https://kazuyukiluck.github.io" \
+            -H "Access-Control-Request-Method: POST" \
+            -H "Access-Control-Request-Headers: content-type,x-master-key" || true
+        continue-on-error: true
+
+      - name: jsonbin.io - create without key (expect 401, not a CF block)
+        run: |
+          curl -sS -i -X POST "https://api.jsonbin.io/v3/b" \
+            -H "Content-Type: application/json" \
+            -H "Origin: https://kazuyukiluck.github.io" \
+            -d '{"hello":"world"}'
+        continue-on-error: true
