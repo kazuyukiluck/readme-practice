@@ -1,0 +1,1294 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>旅わりかん</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%A7%B3%3C/text%3E%3C/svg%3E" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=IBM+Plex+Mono:wght@500;600&display=swap" />
+<style>
+  :root {
+    --bg: #f6f3ec;
+    --surface: #ffffff;
+    --surface-2: #fbf9f3;
+    --ink: #22262a;
+    --ink-soft: #5c6268;
+    --ink-faint: #92979b;
+    --accent: #1b7a72;
+    --accent-strong: #145951;
+    --accent-soft: #e3f0ee;
+    --line: #e2dccd;
+    --line-strong: #cfc7ae;
+    --positive: #2e7d4f;
+    --positive-soft: #e5f3ea;
+    --negative: #b14a3a;
+    --negative-soft: #f8e9e5;
+    --warn: #a8791f;
+    --warn-soft: #f6eed9;
+    --shadow: 0 1px 2px rgba(34, 38, 42, 0.04), 0 8px 24px -12px rgba(34, 38, 42, 0.18);
+    color-scheme: light;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #14181a;
+      --surface: #1d2224;
+      --surface-2: #20262a;
+      --ink: #edeae1;
+      --ink-soft: #a7aeb2;
+      --ink-faint: #6d7378;
+      --accent: #57cabd;
+      --accent-strong: #86e0d4;
+      --accent-soft: #1e3532;
+      --line: #2e3538;
+      --line-strong: #3a4247;
+      --positive: #74cd97;
+      --positive-soft: #1e332a;
+      --negative: #e6907e;
+      --negative-soft: #3a2622;
+      --warn: #e0b95c;
+      --warn-soft: #362c17;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 12px 28px -14px rgba(0, 0, 0, 0.6);
+      color-scheme: dark;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --bg: #14181a;
+    --surface: #1d2224;
+    --surface-2: #20262a;
+    --ink: #edeae1;
+    --ink-soft: #a7aeb2;
+    --ink-faint: #6d7378;
+    --accent: #57cabd;
+    --accent-strong: #86e0d4;
+    --accent-soft: #1e3532;
+    --line: #2e3538;
+    --line-strong: #3a4247;
+    --positive: #74cd97;
+    --positive-soft: #1e332a;
+    --negative: #e6907e;
+    --negative-soft: #3a2622;
+    --warn: #e0b95c;
+    --warn-soft: #362c17;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 12px 28px -14px rgba(0, 0, 0, 0.6);
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Zen Kaku Gothic New", "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
+    padding-inline: 18px;
+    padding-block: 28px 48px;
+    -webkit-font-smoothing: antialiased;
+  }
+  img { max-width: 100%; }
+  [hidden] { display: none !important; }
+
+  .page {
+    max-width: 640px;
+    margin-inline: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+  }
+
+  /* ---------- Header / ticket strip ---------- */
+  .ticket {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+
+  .ticket-top {
+    padding: 20px 22px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .eyebrow-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .eyebrow {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11px;
+    letter-spacing: 0.16em;
+    color: var(--accent);
+    text-transform: uppercase;
+  }
+
+  .actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .sync-pill {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 5px 10px;
+    border-radius: 999px;
+    white-space: nowrap;
+    background: var(--line);
+    color: var(--ink-soft);
+  }
+  .sync-pill.online { background: var(--positive-soft); color: var(--positive); }
+  .sync-pill.saving { background: var(--accent-soft); color: var(--accent-strong); }
+  .sync-pill.offline { background: var(--negative-soft); color: var(--negative); }
+
+  .icon-btn {
+    flex: 0 0 auto;
+    font-family: inherit;
+    font-size: 13px;
+    line-height: 1;
+    color: var(--ink-soft);
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    width: 30px;
+    height: 30px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+  .icon-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  .share-btn {
+    flex: 0 0 auto;
+    font-family: "Zen Kaku Gothic New", sans-serif;
+    font-size: 12.5px;
+    font-weight: 700;
+    color: #fff;
+    background: var(--accent);
+    border: none;
+    border-radius: 999px;
+    padding: 7px 13px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+  }
+  .share-btn:hover { background: var(--accent-strong); }
+
+  .trip-title {
+    font-family: "Shippori Mincho", serif;
+    font-weight: 700;
+    font-size: clamp(24px, 6vw, 30px);
+    text-wrap: balance;
+    border: none;
+    background: transparent;
+    color: var(--ink);
+    width: 100%;
+    padding: 2px 0;
+    border-bottom: 1px dashed transparent;
+  }
+  .trip-title:focus {
+    outline: none;
+    border-bottom: 1px dashed var(--accent);
+  }
+  .trip-title::placeholder { color: var(--ink-faint); }
+
+  .perforation {
+    position: relative;
+    height: 1px;
+    background: repeating-linear-gradient(to right, var(--line-strong) 0 8px, transparent 8px 16px);
+  }
+
+  .members {
+    padding: 16px 22px 20px;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .member-field {
+    flex: 1 1 140px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .member-field label {
+    font-size: 11px;
+    color: var(--ink-soft);
+    letter-spacing: 0.04em;
+  }
+
+  .member-field input {
+    font-family: "Zen Kaku Gothic New", sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    color: var(--ink);
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: 9px;
+    padding: 9px 10px;
+    width: 100%;
+  }
+  .member-field input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+  .member-field .swatch {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 6px;
+  }
+
+  /* ---------- Banners ---------- */
+  .banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    border-radius: 12px;
+    padding: 10px 14px;
+    font-size: 13px;
+    border: 1px solid var(--accent);
+    background: var(--accent-soft);
+    color: var(--accent-strong);
+  }
+  .banner.warn { border-color: var(--warn); background: var(--warn-soft); color: var(--warn); }
+  .banner button {
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 700;
+    background: var(--surface);
+    color: inherit;
+    border: 1px solid currentColor;
+    border-radius: 8px;
+    padding: 6px 10px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  /* ---------- Cards ---------- */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    box-shadow: var(--shadow);
+    padding: 20px 22px;
+  }
+
+  .card h2 {
+    font-family: "Shippori Mincho", serif;
+    font-size: 17px;
+    font-weight: 700;
+    margin: 0 0 4px;
+  }
+
+  .card .hint {
+    font-size: 12.5px;
+    color: var(--ink-soft);
+    margin: 0 0 16px;
+  }
+
+  /* ---------- Expense form ---------- */
+  .expense-form {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px 10px;
+  }
+
+  .field-full { grid-column: 1 / -1; }
+
+  .expense-form label {
+    display: block;
+    font-size: 11px;
+    color: var(--ink-soft);
+    margin-bottom: 5px;
+  }
+
+  .expense-form input[type="text"],
+  .expense-form input[type="number"] {
+    width: 100%;
+    font-family: "Zen Kaku Gothic New", sans-serif;
+    font-size: 15px;
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: 9px;
+    padding: 10px 11px;
+    color: var(--ink);
+  }
+  .expense-form input[type="number"] {
+    font-family: "IBM Plex Mono", monospace;
+    font-variant-numeric: tabular-nums;
+  }
+  .expense-form input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+
+  .payer-toggle {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .payer-toggle button {
+    flex: 1 1 auto;
+    font-family: inherit;
+    font-size: 13.5px;
+    font-weight: 700;
+    padding: 9px 12px;
+    border-radius: 9px;
+    border: 1px solid var(--line);
+    background: var(--surface-2);
+    color: var(--ink-soft);
+    cursor: pointer;
+  }
+  .payer-toggle button[aria-pressed="true"] {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+
+  .add-btn {
+    grid-column: 1 / -1;
+    font-family: inherit;
+    font-size: 14.5px;
+    font-weight: 700;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 12px;
+    cursor: pointer;
+    margin-top: 4px;
+  }
+  .add-btn:hover { background: var(--accent-strong); }
+  .add-btn:disabled { background: var(--line-strong); cursor: not-allowed; }
+
+  /* ---------- Ledger ---------- */
+  .ledger-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .ledger-total {
+    font-family: "IBM Plex Mono", monospace;
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    font-size: 15px;
+  }
+
+  .ledger-empty {
+    text-align: center;
+    color: var(--ink-faint);
+    font-size: 13.5px;
+    padding: 20px 0;
+  }
+
+  .ledger-row {
+    display: grid;
+    grid-template-columns: 1fr auto auto auto;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 0;
+    border-top: 1px dashed var(--line);
+  }
+  .ledger-row:first-child { border-top: none; }
+
+  .ledger-memo {
+    font-size: 14px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .ledger-memo .sample-tag {
+    font-size: 10px;
+    font-family: "IBM Plex Mono", monospace;
+    color: var(--ink-faint);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 1px 5px;
+    margin-right: 6px;
+  }
+
+  .payer-badge {
+    font-size: 11.5px;
+    font-weight: 700;
+    padding: 3px 9px;
+    border-radius: 999px;
+    background: transparent;
+    white-space: nowrap;
+  }
+
+  .ledger-amount {
+    font-family: "IBM Plex Mono", monospace;
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    font-size: 14.5px;
+    white-space: nowrap;
+  }
+
+  .ledger-del {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    border: 1px solid var(--line);
+    background: var(--surface-2);
+    color: var(--ink-soft);
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .ledger-del:hover { background: var(--negative-soft); color: var(--negative); border-color: var(--negative); }
+
+  /* ---------- Summary tiles ---------- */
+  .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 12px;
+  }
+
+  .tile {
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 14px 14px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .tile .name {
+    font-weight: 700;
+    font-size: 14.5px;
+  }
+
+  .tile .row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: var(--ink-soft);
+  }
+  .tile .row span:last-child {
+    font-family: "IBM Plex Mono", monospace;
+    font-variant-numeric: tabular-nums;
+    color: var(--ink);
+  }
+
+  .balance-chip {
+    margin-top: 4px;
+    align-self: flex-start;
+    font-family: "IBM Plex Mono", monospace;
+    font-variant-numeric: tabular-nums;
+    font-size: 12.5px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 999px;
+  }
+  .balance-chip.positive { background: var(--positive-soft); color: var(--positive); }
+  .balance-chip.negative { background: var(--negative-soft); color: var(--negative); }
+  .balance-chip.zero { background: var(--line); color: var(--ink-soft); }
+
+  /* ---------- Settlement ---------- */
+  .settle-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .settle-row {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr auto;
+    align-items: center;
+    gap: 10px;
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 12px 14px;
+  }
+
+  .settle-name {
+    font-weight: 700;
+    font-size: 14.5px;
+    text-align: center;
+  }
+  .settle-name.from { color: var(--negative); text-align: left; }
+  .settle-name.to { color: var(--positive); text-align: right; }
+
+  .settle-arrow {
+    color: var(--ink-faint);
+    font-size: 16px;
+  }
+
+  .settle-amount {
+    font-family: "IBM Plex Mono", monospace;
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+    font-size: 15px;
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  .settle-done {
+    text-align: center;
+    padding: 18px 0 8px;
+    color: var(--positive);
+    font-weight: 700;
+    font-size: 14.5px;
+  }
+
+  .footer-note {
+    text-align: center;
+    font-size: 11.5px;
+    color: var(--ink-faint);
+    line-height: 1.7;
+    padding-top: 4px;
+  }
+
+  .reset-btn {
+    font-family: inherit;
+    font-size: 12.5px;
+    color: var(--ink-soft);
+    background: transparent;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 5px 11px;
+    cursor: pointer;
+  }
+  .reset-btn:hover { border-color: var(--negative); color: var(--negative); }
+
+  @media (max-width: 420px) {
+    .expense-form { grid-template-columns: 1fr; }
+    .ledger-row { grid-template-columns: 1fr auto auto; }
+    .payer-badge { display: none; }
+  }
+
+  /* ---------- Toast ---------- */
+  .toast {
+    position: fixed;
+    left: 50%;
+    bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+    transform: translateX(-50%) translateY(12px);
+    background: var(--ink);
+    color: var(--bg);
+    font-size: 13px;
+    font-weight: 600;
+    padding: 10px 18px;
+    border-radius: 999px;
+    box-shadow: var(--shadow);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    z-index: 20;
+    white-space: nowrap;
+    max-width: calc(100vw - 32px);
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  /* ---------- Boot screen ---------- */
+  .boot {
+    max-width: 420px;
+    margin: 20vh auto 0;
+    text-align: center;
+    color: var(--ink-soft);
+    font-size: 14px;
+    line-height: 1.8;
+  }
+  .boot .spinner {
+    width: 22px;
+    height: 22px;
+    margin: 0 auto 14px;
+    border-radius: 50%;
+    border: 3px solid var(--line);
+    border-top-color: var(--accent);
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .boot button {
+    margin-top: 10px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 700;
+    color: #fff;
+    background: var(--accent);
+    border: none;
+    border-radius: 9px;
+    padding: 9px 16px;
+    cursor: pointer;
+  }
+</style>
+</head>
+<body>
+
+<div class="boot" id="boot">
+  <div class="spinner"></div>
+  <div id="bootMessage">読み込み中…</div>
+</div>
+
+<div class="page" id="app" hidden>
+
+  <div class="ticket">
+    <div class="ticket-top">
+      <div class="eyebrow-row">
+        <div class="eyebrow">TRAVEL SETTLEMENT · 3人旅行の割り勘</div>
+        <div class="actions">
+          <span class="sync-pill" id="syncPill">--</span>
+          <button id="refreshBtn" type="button" class="icon-btn" title="最新の状態に更新" aria-label="最新の状態に更新">⟳</button>
+          <button id="shareBtn" type="button" class="share-btn">🔗 共有</button>
+        </div>
+      </div>
+      <input id="tripTitle" class="trip-title" type="text" placeholder="旅行の名前(例:金沢2泊3日)" maxlength="40" />
+    </div>
+    <div class="perforation"></div>
+    <div class="members" id="members"></div>
+  </div>
+
+  <div id="sampleBanner" class="banner" hidden>
+    <span>📝 これはサンプルデータです。入力を始めると自動でクリアされます。</span>
+    <button id="clearSampleBtn" type="button">サンプルを消す</button>
+  </div>
+
+  <div id="errorBanner" class="banner warn" hidden>
+    <span id="errorBannerText">通信に失敗しました。表示中の内容は最新でない可能性があります。</span>
+    <button id="retryBtn" type="button">再試行</button>
+  </div>
+
+  <div class="card">
+    <h2>支払いを記録する</h2>
+    <p class="hint">誰が・いくら払ったかを入力してください。追加すると全員に共有されます。</p>
+    <form class="expense-form" id="expenseForm">
+      <div class="field-full">
+        <label for="memoInput">内容(任意)</label>
+        <input id="memoInput" type="text" placeholder="例:ホテル代、夕食" maxlength="30" />
+      </div>
+      <div class="field-full">
+        <label>払った人</label>
+        <div class="payer-toggle" id="payerToggle"></div>
+      </div>
+      <div class="field-full">
+        <label for="amountInput">金額(円)</label>
+        <input id="amountInput" type="number" min="0" step="1" inputmode="numeric" placeholder="0" />
+      </div>
+      <button type="submit" class="add-btn" id="addBtn">支払いを追加</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <div class="ledger-head">
+      <h2 style="margin:0;">支払い一覧</h2>
+      <span class="ledger-total" id="ledgerTotal">合計 ¥0</span>
+    </div>
+    <div id="ledgerBody"></div>
+  </div>
+
+  <div class="card">
+    <h2>一人あたりの収支</h2>
+    <p class="hint">支払った金額 − 一人分の負担額</p>
+    <div class="summary-grid" id="summaryGrid"></div>
+  </div>
+
+  <div class="card">
+    <h2>精算方法</h2>
+    <p class="hint">この通りに送金すれば、ちょうど割り勘になります。</p>
+    <div id="settleBody"></div>
+  </div>
+
+  <div style="display:flex; justify-content:center;">
+    <button class="reset-btn" id="resetBtn" type="button">すべてリセット</button>
+  </div>
+
+  <p class="footer-note">このリンクを開いた3人で内容が共有されます(誰かが入力すると、他の人が開いたときに反映されます)。<br />ログイン不要ですが、URLを知っている人は誰でも編集できます。旅費の記録以外には使わないでください。<br />無料の外部保存サービスを利用しているため、長期間(1か月程度)アクセスがないとデータが消える場合があります。</p>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function () {
+  "use strict";
+
+  var API_BASE = "https://jsonblob.com/api/jsonBlob";
+  var SWATCHES = ["#1b7a72", "#b06f2b", "#5a6bb5"];
+  var POLL_MS = 6000;
+  var NAME_SYNC_DEBOUNCE_MS = 700;
+
+  var blobId = null;
+  var state = null;
+  var selectedPayer = 0;
+  var toastTimer = null;
+  var isWriting = false;
+  var writeQueued = false;
+  var nameSyncTimer = null;
+
+  function defaultState() {
+    var now = Date.now();
+    return {
+      tripTitle: "",
+      members: ["Aさん", "Bさん", "Cさん"],
+      expenses: [
+        { id: "s1", memo: "ホテル代(2泊)", payer: 0, amount: 36000, at: now + 1, sample: true },
+        { id: "s2", memo: "夕食(居酒屋)", payer: 1, amount: 9600, at: now + 2, sample: true },
+        { id: "s3", memo: "レンタカー", payer: 2, amount: 12000, at: now + 3, sample: true }
+      ],
+      deletedIds: [],
+      isSample: true,
+      updatedAt: new Date(now).toISOString()
+    };
+  }
+
+  function localKey() { return "warikan-blob-" + blobId; }
+
+  function saveLocalCache() {
+    try { localStorage.setItem(localKey(), JSON.stringify(state)); } catch (e) { /* ignore */ }
+  }
+
+  function loadLocalCache() {
+    try {
+      var raw = localStorage.getItem(localKey());
+      return raw ? JSON.parse(raw) : null;
+    } catch (e) { return null; }
+  }
+
+  // ---------- jsonblob.com storage ----------
+  function createBlob(data) {
+    return fetch(API_BASE, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data)
+    }).then(function (res) {
+      if (!res.ok) throw new Error("create failed: " + res.status);
+      var location = res.headers.get("Location") || "";
+      var id = location.split("/").filter(Boolean).pop();
+      if (!id) throw new Error("no blob id returned");
+      return id;
+    });
+  }
+
+  function readBlob(id) {
+    return fetch(API_BASE + "/" + id, { cache: "no-store" }).then(function (res) {
+      if (!res.ok) throw new Error("read failed: " + res.status);
+      return res.json();
+    });
+  }
+
+  function writeBlob(id, data) {
+    return fetch(API_BASE + "/" + id, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data)
+    }).then(function (res) {
+      if (!res.ok) throw new Error("write failed: " + res.status);
+    });
+  }
+
+  // ---------- merge ----------
+  function uniq(arr) {
+    var seen = {}; var out = [];
+    arr.forEach(function (x) { if (!seen[x]) { seen[x] = true; out.push(x); } });
+    return out;
+  }
+
+  function mergeStates(remote, local) {
+    if (!remote) return local;
+    var deletedIds = uniq((remote.deletedIds || []).concat(local.deletedIds || []));
+    var byId = {};
+    (remote.expenses || []).forEach(function (e) { byId[e.id] = e; });
+    (local.expenses || []).forEach(function (e) { byId[e.id] = e; });
+    var expenses = Object.keys(byId).map(function (k) { return byId[k]; })
+      .filter(function (e) { return deletedIds.indexOf(e.id) === -1; })
+      .sort(function (a, b) { return (a.at || 0) - (b.at || 0); });
+    return {
+      tripTitle: local.tripTitle,
+      members: local.members,
+      expenses: expenses,
+      deletedIds: deletedIds,
+      isSample: local.isSample && expenses.every(function (e) { return e.sample; }),
+      updatedAt: new Date().toISOString()
+    };
+  }
+
+  // ---------- UI helpers ----------
+  function yen(n) {
+    var sign = n < 0 ? "-" : "";
+    return sign + "¥" + Math.abs(Math.round(n)).toLocaleString("ja-JP");
+  }
+
+  function memberName(i) {
+    var name = ((state.members || [])[i] || "").trim();
+    return name || ["Aさん", "Bさん", "Cさん"][i];
+  }
+
+  function showToast(message) {
+    var el = document.getElementById("toast");
+    el.textContent = message;
+    el.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { el.classList.remove("show"); }, 2200);
+  }
+
+  function setSyncPill(kind, label) {
+    var el = document.getElementById("syncPill");
+    el.className = "sync-pill " + kind;
+    el.textContent = label;
+  }
+
+  function setErrorBanner(visible, text) {
+    var el = document.getElementById("errorBanner");
+    el.hidden = !visible;
+    if (text) document.getElementById("errorBannerText").textContent = text;
+  }
+
+  function clearSampleIfNeeded() {
+    if (state.isSample) {
+      state.isSample = false;
+      state.expenses.forEach(function (e) { e.sample = false; });
+    }
+  }
+
+  // ---------- computations ----------
+  function computeBalances() {
+    var total = 0;
+    var paid = [0, 0, 0];
+    state.expenses.forEach(function (e) {
+      total += e.amount;
+      paid[e.payer] += e.amount;
+    });
+    var base = Math.floor(total / 3);
+    var remainder = total - base * 3;
+    var share = [base, base, base];
+    for (var i = 0; i < remainder; i++) share[i] += 1;
+    var balance = [0, 1, 2].map(function (i) { return paid[i] - share[i]; });
+    return { total: total, paid: paid, share: share, balance: balance };
+  }
+
+  function computeSettlement(balance) {
+    var debtors = [];
+    var creditors = [];
+    balance.forEach(function (b, i) {
+      if (b < 0) debtors.push({ i: i, amt: -b });
+      else if (b > 0) creditors.push({ i: i, amt: b });
+    });
+    debtors.sort(function (a, b) { return b.amt - a.amt; });
+    creditors.sort(function (a, b) { return b.amt - a.amt; });
+
+    var transactions = [];
+    var di = 0, ci = 0;
+    while (di < debtors.length && ci < creditors.length) {
+      var d = debtors[di], c = creditors[ci];
+      var amt = Math.min(d.amt, c.amt);
+      if (amt > 0) transactions.push({ from: d.i, to: c.i, amount: amt });
+      d.amt -= amt;
+      c.amt -= amt;
+      if (d.amt <= 0) di++;
+      if (c.amt <= 0) ci++;
+    }
+    return transactions;
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+
+  // ---------- rendering ----------
+  function renderTripTitle() {
+    var el = document.getElementById("tripTitle");
+    if (document.activeElement === el) return;
+    el.value = state.tripTitle || "";
+  }
+
+  function renderMembers() {
+    var wrap = document.getElementById("members");
+    if (wrap.contains(document.activeElement)) return;
+    wrap.innerHTML = "";
+    for (var i = 0; i < 3; i++) {
+      var field = document.createElement("div");
+      field.className = "member-field";
+      var label = document.createElement("label");
+      label.innerHTML = '<span class="swatch" style="background:' + SWATCHES[i] + '"></span>メンバー ' + (i + 1);
+      var input = document.createElement("input");
+      input.type = "text";
+      input.maxLength = 12;
+      input.value = state.members[i];
+      input.placeholder = ["Aさん", "Bさん", "Cさん"][i];
+      input.dataset.index = String(i);
+      input.addEventListener("input", function (ev) {
+        var idx = Number(ev.target.dataset.index);
+        state.members[idx] = ev.target.value;
+        renderPayerToggle();
+        renderLedger();
+        renderSummary();
+        renderSettlement();
+        scheduleNameSync();
+      });
+      field.appendChild(label);
+      field.appendChild(input);
+      wrap.appendChild(field);
+    }
+  }
+
+  function renderPayerToggle() {
+    var wrap = document.getElementById("payerToggle");
+    wrap.innerHTML = "";
+    for (var i = 0; i < 3; i++) {
+      (function (i) {
+        var btn = document.createElement("button");
+        btn.type = "button";
+        btn.textContent = memberName(i);
+        btn.setAttribute("aria-pressed", String(selectedPayer === i));
+        btn.addEventListener("click", function () {
+          selectedPayer = i;
+          renderPayerToggle();
+        });
+        wrap.appendChild(btn);
+      })(i);
+    }
+  }
+
+  function renderLedger() {
+    var body = document.getElementById("ledgerBody");
+    var totalEl = document.getElementById("ledgerTotal");
+    var data = computeBalances();
+    totalEl.textContent = "合計 " + yen(data.total);
+
+    document.getElementById("sampleBanner").hidden = !state.isSample;
+
+    body.innerHTML = "";
+    if (state.expenses.length === 0) {
+      var empty = document.createElement("div");
+      empty.className = "ledger-empty";
+      empty.textContent = "まだ支払いが登録されていません。";
+      body.appendChild(empty);
+      return;
+    }
+    state.expenses.forEach(function (e) {
+      var row = document.createElement("div");
+      row.className = "ledger-row";
+
+      var memo = document.createElement("div");
+      memo.className = "ledger-memo";
+      memo.innerHTML = (e.sample ? '<span class="sample-tag">例</span>' : "") +
+        (e.memo ? escapeHtml(e.memo) : '<span style="color:var(--ink-faint)">(内容なし)</span>');
+
+      var badge = document.createElement("span");
+      badge.className = "payer-badge";
+      badge.style.border = "1px solid " + SWATCHES[e.payer];
+      badge.style.color = SWATCHES[e.payer];
+      badge.textContent = memberName(e.payer);
+
+      var amount = document.createElement("div");
+      amount.className = "ledger-amount";
+      amount.textContent = yen(e.amount);
+
+      var del = document.createElement("button");
+      del.className = "ledger-del";
+      del.type = "button";
+      del.setAttribute("aria-label", "この支払いを削除");
+      del.textContent = "×";
+      del.addEventListener("click", function () {
+        state.expenses = state.expenses.filter(function (x) { return x.id !== e.id; });
+        state.deletedIds.push(e.id);
+        if (state.expenses.length === 0) state.isSample = false;
+        renderAll();
+        syncWrite();
+      });
+
+      row.appendChild(memo);
+      row.appendChild(badge);
+      row.appendChild(amount);
+      row.appendChild(del);
+      body.appendChild(row);
+    });
+  }
+
+  function renderSummary() {
+    var grid = document.getElementById("summaryGrid");
+    var data = computeBalances();
+    grid.innerHTML = "";
+    for (var i = 0; i < 3; i++) {
+      var tile = document.createElement("div");
+      tile.className = "tile";
+      tile.style.borderTop = "3px solid " + SWATCHES[i];
+
+      var name = document.createElement("div");
+      name.className = "name";
+      name.textContent = memberName(i);
+
+      var rowPaid = document.createElement("div");
+      rowPaid.className = "row";
+      rowPaid.innerHTML = "<span>支払った額</span><span>" + yen(data.paid[i]) + "</span>";
+
+      var rowShare = document.createElement("div");
+      rowShare.className = "row";
+      rowShare.innerHTML = "<span>本来の負担額</span><span>" + yen(data.share[i]) + "</span>";
+
+      var chip = document.createElement("div");
+      var b = data.balance[i];
+      var cls = b > 0 ? "positive" : b < 0 ? "negative" : "zero";
+      chip.className = "balance-chip " + cls;
+      chip.textContent = b > 0 ? "受け取り " + yen(b) : b < 0 ? "支払い " + yen(-b) : "精算済み";
+
+      tile.appendChild(name);
+      tile.appendChild(rowPaid);
+      tile.appendChild(rowShare);
+      tile.appendChild(chip);
+      grid.appendChild(tile);
+    }
+  }
+
+  function renderSettlement() {
+    var body = document.getElementById("settleBody");
+    var data = computeBalances();
+    var tx = computeSettlement(data.balance);
+    body.innerHTML = "";
+
+    if (data.total === 0) {
+      var none = document.createElement("div");
+      none.className = "settle-done";
+      none.textContent = "まだ支払いがありません。";
+      body.appendChild(none);
+      return;
+    }
+    if (tx.length === 0) {
+      var done = document.createElement("div");
+      done.className = "settle-done";
+      done.textContent = "✓ すでに全員の負担が同じです。送金の必要はありません。";
+      body.appendChild(done);
+      return;
+    }
+
+    var list = document.createElement("div");
+    list.className = "settle-list";
+    tx.forEach(function (t) {
+      var row = document.createElement("div");
+      row.className = "settle-row";
+      row.innerHTML =
+        '<span class="settle-name from">' + escapeHtml(memberName(t.from)) + "</span>" +
+        '<span class="settle-arrow">→</span>' +
+        '<span class="settle-name to">' + escapeHtml(memberName(t.to)) + "</span>" +
+        '<span class="settle-amount">' + yen(t.amount) + "</span>";
+      list.appendChild(row);
+    });
+    body.appendChild(list);
+  }
+
+  function renderAll() {
+    renderTripTitle();
+    renderMembers();
+    renderPayerToggle();
+    renderLedger();
+    renderSummary();
+    renderSettlement();
+  }
+
+  // ---------- sync ----------
+  function scheduleNameSync() {
+    clearTimeout(nameSyncTimer);
+    nameSyncTimer = setTimeout(function () { syncWrite(); }, NAME_SYNC_DEBOUNCE_MS);
+  }
+
+  function syncWrite() {
+    if (!blobId) return;
+    if (isWriting) { writeQueued = true; return; }
+    isWriting = true;
+    setSyncPill("saving", "🔄 送信中…");
+    readBlob(blobId).catch(function () { return null; })
+      .then(function (remote) {
+        state = mergeStates(remote, state);
+        saveLocalCache();
+        renderAll();
+        return writeBlob(blobId, state);
+      })
+      .then(function () {
+        setSyncPill("online", "🟢 同期済み");
+        setErrorBanner(false);
+      })
+      .catch(function () {
+        setSyncPill("offline", "⚠️ 未送信");
+        setErrorBanner(true, "保存できませんでした。電波の良い場所でもう一度お試しください。");
+      })
+      .then(function () {
+        isWriting = false;
+        if (writeQueued) { writeQueued = false; syncWrite(); }
+      });
+  }
+
+  function pollRemote() {
+    if (!blobId || isWriting) return;
+    readBlob(blobId).then(function (remote) {
+      setErrorBanner(false);
+      if (remote && remote.updatedAt !== state.updatedAt) {
+        state = remote;
+        saveLocalCache();
+        renderAll();
+      }
+      setSyncPill("online", "🟢 同期済み");
+    }).catch(function () {
+      setSyncPill("offline", "⚠️ オフライン");
+    });
+  }
+
+  // ---------- boot ----------
+  function showApp() {
+    document.getElementById("boot").hidden = true;
+    document.getElementById("app").hidden = false;
+  }
+
+  function showBootError(message, retry) {
+    document.getElementById("bootMessage").innerHTML =
+      escapeHtml(message) + '<br><button id="bootRetry">再試行</button>';
+    document.querySelector(".boot .spinner").hidden = true;
+    document.getElementById("bootRetry").addEventListener("click", retry);
+  }
+
+  function boot() {
+    var params = new URLSearchParams(window.location.search);
+    var id = params.get("id");
+
+    if (id) {
+      blobId = id;
+      var cached = loadLocalCache();
+      readBlob(id).then(function (remote) {
+        state = remote;
+        saveLocalCache();
+        selectedPayer = 0;
+        renderAll();
+        showApp();
+        setSyncPill("online", "🟢 同期済み");
+      }).catch(function () {
+        if (cached) {
+          state = cached;
+          selectedPayer = 0;
+          renderAll();
+          showApp();
+          setSyncPill("offline", "⚠️ オフライン");
+          setErrorBanner(true, "最新の状態を取得できませんでした。前回表示した内容を表示しています。");
+        } else {
+          showBootError("読み込みに失敗しました。通信環境を確認してください。", boot);
+        }
+      });
+      return;
+    }
+
+    // No id in the URL yet: mint a fresh shared trip.
+    var fresh = defaultState();
+    createBlob(fresh).then(function (newId) {
+      blobId = newId;
+      state = fresh;
+      var url = new URL(window.location.href);
+      url.searchParams.set("id", newId);
+      history.replaceState(null, "", url.toString());
+      saveLocalCache();
+      selectedPayer = 0;
+      renderAll();
+      showApp();
+      setSyncPill("online", "🟢 同期済み");
+      showToast("新しい旅行を作成しました。「🔗 共有」でリンクを送ってください");
+    }).catch(function () {
+      showBootError("新しい旅行を作成できませんでした。通信環境を確認してください。", boot);
+    });
+  }
+
+  // ---------- events ----------
+  document.getElementById("tripTitle").addEventListener("input", function (ev) {
+    state.tripTitle = ev.target.value;
+    scheduleNameSync();
+  });
+
+  document.getElementById("clearSampleBtn").addEventListener("click", function () {
+    clearSampleIfNeeded();
+    renderAll();
+    syncWrite();
+  });
+
+  document.getElementById("expenseForm").addEventListener("submit", function (ev) {
+    ev.preventDefault();
+    var memoInput = document.getElementById("memoInput");
+    var amountInput = document.getElementById("amountInput");
+    var amount = Math.round(Number(amountInput.value));
+    if (!amount || amount <= 0) {
+      amountInput.focus();
+      return;
+    }
+    clearSampleIfNeeded();
+    state.expenses.push({
+      id: "e" + Date.now() + Math.random().toString(16).slice(2),
+      memo: memoInput.value.trim(),
+      payer: selectedPayer,
+      amount: amount,
+      at: Date.now()
+    });
+    memoInput.value = "";
+    amountInput.value = "";
+    memoInput.focus();
+    renderAll();
+    syncWrite();
+  });
+
+  document.getElementById("resetBtn").addEventListener("click", function () {
+    if (!confirm("入力した内容をすべて削除して、最初からやり直しますか?(全員に反映されます)")) return;
+    var deletedIds = state.expenses.map(function (e) { return e.id; }).concat(state.deletedIds || []);
+    state = defaultState();
+    state.deletedIds = uniq(deletedIds);
+    selectedPayer = 0;
+    renderAll();
+    syncWrite();
+  });
+
+  document.getElementById("refreshBtn").addEventListener("click", function () {
+    pollRemote();
+  });
+
+  document.getElementById("retryBtn").addEventListener("click", function () {
+    pollRemote();
+  });
+
+  document.getElementById("shareBtn").addEventListener("click", function () {
+    var url = window.location.href;
+    var shareData = {
+      title: (state.tripTitle || "旅わりかん") + " の割り勘",
+      text: "旅行の割り勘ページです。リンクを開くと同じ内容が見られます。",
+      url: url
+    };
+    if (navigator.share) {
+      navigator.share(shareData).catch(function () { /* user cancelled: ignore */ });
+      return;
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).then(function () {
+        showToast("リンクをコピーしました");
+      }).catch(function () {
+        showToast("コピーできませんでした。URL欄を長押ししてコピーしてください");
+      });
+      return;
+    }
+    showToast("このブラウザは共有に対応していません。URL欄からコピーしてください");
+  });
+
+  setInterval(pollRemote, POLL_MS);
+  document.addEventListener("visibilitychange", function () { if (!document.hidden) pollRemote(); });
+  window.addEventListener("focus", pollRemote);
+
+  boot();
+})();
+</script>
+</body>
+</html>
