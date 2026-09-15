@@ -736,6 +736,36 @@
   .slot-diff.positive { color: var(--positive); }
   .slot-diff.negative { color: var(--negative); }
 
+  /* ---------- Slot: hand-off list ---------- */
+  .handoff-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 10px 12px;
+  }
+  .handoff-row + .handoff-row { margin-top: 8px; }
+  .handoff-row.settled { opacity: 0.5; }
+  .handoff-names {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 700;
+    font-size: 14px;
+  }
+  .handoff-amount {
+    font-family: "IBM Plex Mono", monospace;
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+    font-size: 13px;
+    text-align: right;
+    white-space: nowrap;
+    color: var(--ink-soft);
+  }
+
   /* ---------- Slot: group total bar ---------- */
   .group-total-bar {
     margin-top: 14px;
@@ -1023,6 +1053,39 @@
   </div>
 
   <div class="card">
+    <h2>受け渡しを記録</h2>
+    <p class="hint">現金を介さずに枚・球・円を他の人に渡した場合はここに記録してください。渡した人の収支が減り、受け取った人の収支が増える形で個人ごとに反映されます(グループ合計は変わりません)。</p>
+    <form class="expense-form" id="handoffForm">
+      <div class="field-full">
+        <label>渡した人</label>
+        <div class="payer-toggle" id="handoffFromToggle"></div>
+      </div>
+      <div class="field-full">
+        <label>受け取った人</label>
+        <div class="payer-toggle" id="handoffToToggle"></div>
+      </div>
+      <div class="field-full">
+        <label>数量</label>
+        <div class="unit-input">
+          <div class="unit-toggle" id="handoffUnitToggle">
+            <button type="button" data-unit="yen" aria-pressed="true">円</button>
+            <button type="button" data-unit="coin" aria-pressed="false">枚</button>
+            <button type="button" data-unit="ball" aria-pressed="false">球</button>
+          </div>
+          <input id="handoffAmountInput" type="number" min="0" step="1" inputmode="numeric" placeholder="0" />
+        </div>
+      </div>
+      <button type="submit" class="add-btn" id="handoffAddBtn">この受け渡しを記録</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2>受け渡し履歴</h2>
+    <p class="hint">グレー表示は精算済みです。</p>
+    <div id="handoffListBody"></div>
+  </div>
+
+  <div class="card">
     <h2>人ごとの収支</h2>
     <p class="hint">前回の精算以降の、回収合計 − 投資合計</p>
     <div class="summary-grid" id="slotSummaryGrid"></div>
@@ -1071,6 +1134,9 @@
   var selectedSlotPayer = 0;
   var selectedInvestUnit = "yen";
   var selectedPayoutUnit = "yen";
+  var selectedHandoffFrom = 0;
+  var selectedHandoffTo = 1;
+  var selectedHandoffUnit = "yen";
   var toastTimer = null;
   var isWriting = false;
   var writeQueued = false;
@@ -1097,6 +1163,8 @@
       expenseSettledAt: 0,
       slotRecords: [],
       slotDeletedIds: [],
+      slotHandoffs: [],
+      slotHandoffDeletedIds: [],
       slotRate: 20,
       ballRate: 4,
       slotSettledAt: 0,
@@ -1206,6 +1274,7 @@
     if (!remote) return local;
     var exp = mergeRecords(remote.expenses, local.expenses, remote.deletedIds, local.deletedIds);
     var slot = mergeRecords(remote.slotRecords, local.slotRecords, remote.slotDeletedIds, local.slotDeletedIds);
+    var handoff = mergeRecords(remote.slotHandoffs, local.slotHandoffs, remote.slotHandoffDeletedIds, local.slotHandoffDeletedIds);
     return {
       tripTitle: local.tripTitle,
       members: local.members,
@@ -1215,6 +1284,8 @@
       expenseSettledAt: Math.max(local.expenseSettledAt || 0, remote.expenseSettledAt || 0),
       slotRecords: slot.records,
       slotDeletedIds: slot.deletedIds,
+      slotHandoffs: handoff.records,
+      slotHandoffDeletedIds: handoff.deletedIds,
       slotRate: local.slotRate || remote.slotRate || 20,
       ballRate: local.ballRate || remote.ballRate || 4,
       slotSettledAt: Math.max(local.slotSettledAt || 0, remote.slotSettledAt || 0),
@@ -1229,6 +1300,8 @@
     s.expenseSettledAt = s.expenseSettledAt || 0;
     s.slotRecords = s.slotRecords || [];
     s.slotDeletedIds = s.slotDeletedIds || [];
+    s.slotHandoffs = s.slotHandoffs || [];
+    s.slotHandoffDeletedIds = s.slotHandoffDeletedIds || [];
     s.slotRate = s.slotRate || 20;
     s.ballRate = s.ballRate || 4;
     s.slotSettledAt = s.slotSettledAt || 0;
@@ -1253,6 +1326,9 @@
     var merged = mergeRecords(snap.slotRecords, state.slotRecords, snap.slotDeletedIds, state.slotDeletedIds);
     state.slotRecords = merged.records;
     state.slotDeletedIds = merged.deletedIds;
+    var mergedHandoffs = mergeRecords(snap.slotHandoffs, state.slotHandoffs, snap.slotHandoffDeletedIds, state.slotHandoffDeletedIds);
+    state.slotHandoffs = mergedHandoffs.records;
+    state.slotHandoffDeletedIds = mergedHandoffs.deletedIds;
     state.slotSettledAt = snap.slotSettledAt;
   }
 
@@ -1436,6 +1512,25 @@
     });
   }
 
+  function renderHandoffFromToggle() {
+    renderMemberToggle("handoffFromToggle", selectedHandoffFrom, function (i) {
+      selectedHandoffFrom = i;
+      if (selectedHandoffTo === i) {
+        selectedHandoffTo = (i + 1) % 3;
+        renderHandoffToToggle();
+      }
+      renderHandoffFromToggle();
+    });
+  }
+
+  function renderHandoffToToggle() {
+    renderMemberToggle("handoffToToggle", selectedHandoffTo, function (i) {
+      if (i === selectedHandoffFrom) return;
+      selectedHandoffTo = i;
+      renderHandoffToToggle();
+    });
+  }
+
   function renderLedger() {
     var body = document.getElementById("ledgerBody");
     var totalEl = document.getElementById("ledgerTotal");
@@ -1586,6 +1681,19 @@
     return r.payout || 0;
   }
 
+  // A hand-off moves custody of medals/balls/cash from one person to
+  // another without any real money changing hands with the group as a
+  // whole, so it never touches invest/payout totals -- it only shifts
+  // yen-equivalent value from the giver's personal balance to the
+  // receiver's, which is exactly what's needed so a session someone else
+  // funds with handed-off medals doesn't get double-counted as that
+  // person's own cash.
+  function handoffYen(h) {
+    if (h.unit === "coin") return Math.round((h.raw || 0) * (state.slotRate || 20));
+    if (h.unit === "ball") return Math.round((h.raw || 0) * (state.ballRate || 4));
+    return h.yen || 0;
+  }
+
   // Scoped to records added since the last settlement checkpoint, same
   // idea as computeBalances() on the 割り勘 tab. lifetimeInvest/Payout
   // cover every record ever, so total spend stays visible after settling.
@@ -1593,6 +1701,7 @@
     var settledAt = state.slotSettledAt || 0;
     var invest = [0, 0, 0];
     var payout = [0, 0, 0];
+    var handoffNet = [0, 0, 0];
     var lifetimeInvest = 0, lifetimePayout = 0;
     state.slotRecords.forEach(function (r) {
       var iy = recordInvestYen(r), py = recordPayoutYen(r);
@@ -1603,11 +1712,18 @@
         payout[r.payer] += py;
       }
     });
-    var balance = [0, 1, 2].map(function (i) { return payout[i] - invest[i]; });
+    (state.slotHandoffs || []).forEach(function (h) {
+      if (h.at > settledAt) {
+        var hy = handoffYen(h);
+        handoffNet[h.from] -= hy;
+        handoffNet[h.to] += hy;
+      }
+    });
+    var balance = [0, 1, 2].map(function (i) { return payout[i] - invest[i] + handoffNet[i]; });
     var totalInvest = invest[0] + invest[1] + invest[2];
     var totalPayout = payout[0] + payout[1] + payout[2];
     return {
-      invest: invest, payout: payout, balance: balance,
+      invest: invest, payout: payout, balance: balance, handoffNet: handoffNet,
       totalInvest: totalInvest, totalPayout: totalPayout, total: totalPayout - totalInvest,
       lifetimeInvest: lifetimeInvest, lifetimePayout: lifetimePayout, lifetimeTotal: lifetimePayout - lifetimeInvest
     };
@@ -1657,14 +1773,22 @@
   }
 
   function computeSlotSeries() {
-    var records = state.slotRecords.slice().sort(function (a, b) { return (a.at || 0) - (b.at || 0); });
+    var events = state.slotRecords.map(function (r) { return { at: r.at || 0, kind: "record", data: r }; })
+      .concat((state.slotHandoffs || []).map(function (h) { return { at: h.at || 0, kind: "handoff", data: h }; }));
+    events.sort(function (a, b) { return a.at - b.at; });
     var cum = [0, 0, 0];
     var series = [[{ x: 0, y: 0 }], [{ x: 0, y: 0 }], [{ x: 0, y: 0 }]];
-    records.forEach(function (r, idx) {
-      cum[r.payer] += (recordPayoutYen(r) - recordInvestYen(r));
+    events.forEach(function (e, idx) {
+      if (e.kind === "record") {
+        cum[e.data.payer] += (recordPayoutYen(e.data) - recordInvestYen(e.data));
+      } else {
+        var hy = handoffYen(e.data);
+        cum[e.data.from] -= hy;
+        cum[e.data.to] += hy;
+      }
       for (var i = 0; i < 3; i++) series[i].push({ x: idx + 1, y: cum[i] });
     });
-    return { series: series, n: records.length };
+    return { series: series, n: events.length };
   }
 
   // ---------- slot: rendering ----------
@@ -1788,10 +1912,59 @@
     });
   }
 
+  function renderHandoffList() {
+    var body = document.getElementById("handoffListBody");
+    body.innerHTML = "";
+    var list = (state.slotHandoffs || []).slice().sort(function (a, b) { return (a.at || 0) - (b.at || 0); });
+    if (list.length === 0) {
+      var empty = document.createElement("div");
+      empty.className = "ledger-empty";
+      empty.textContent = "まだ記録がありません。";
+      body.appendChild(empty);
+      return;
+    }
+    list.forEach(function (h) {
+      var row = document.createElement("div");
+      var isSettled = h.at <= (state.slotSettledAt || 0);
+      row.className = "handoff-row" + (isSettled ? " settled" : "");
+
+      var names = document.createElement("div");
+      names.className = "handoff-names";
+      names.innerHTML =
+        '<span style="color:' + SWATCHES[h.from] + '">' + escapeHtml(memberName(h.from)) + "</span>" +
+        '<span class="settle-arrow">→</span>' +
+        '<span style="color:' + SWATCHES[h.to] + '">' + escapeHtml(memberName(h.to)) + "</span>";
+
+      var amount = document.createElement("div");
+      amount.className = "handoff-amount";
+      var qtyLabel = h.unit === "coin" ? (h.raw || 0) + "枚" : h.unit === "ball" ? (h.raw || 0) + "球" : yen(h.yen || 0);
+      var yenNote = h.unit === "yen" ? "" : " (" + yen(handoffYen(h)) + ")";
+      amount.textContent = qtyLabel + yenNote + (isSettled ? " 精算済" : "");
+
+      var del = document.createElement("button");
+      del.className = "ledger-del";
+      del.type = "button";
+      del.setAttribute("aria-label", "この受け渡しを削除");
+      del.textContent = "×";
+      del.addEventListener("click", function () {
+        state.slotHandoffs = state.slotHandoffs.filter(function (x) { return x.id !== h.id; });
+        state.slotHandoffDeletedIds.push(h.id);
+        renderAll();
+        syncWrite();
+      });
+
+      row.appendChild(names);
+      row.appendChild(amount);
+      row.appendChild(del);
+      body.appendChild(row);
+    });
+  }
+
   function renderSlotSummary() {
     var grid = document.getElementById("slotSummaryGrid");
     var data = computeSlotTotals();
     var settle = computeSlotSettlement();
+    var hasHandoffs = (state.slotHandoffs || []).length > 0;
     grid.innerHTML = "";
     for (var i = 0; i < 3; i++) {
       var tile = document.createElement("div");
@@ -1810,11 +1983,21 @@
       rowPayout.className = "row";
       rowPayout.innerHTML = "<span>回収合計</span><span>" + yen(data.payout[i]) + "</span>";
 
+      var rowHandoff = null;
+      if (hasHandoffs) {
+        rowHandoff = document.createElement("div");
+        rowHandoff.className = "row";
+        var hn = data.handoffNet[i];
+        var hnColor = hn > 0 ? "var(--positive)" : hn < 0 ? "var(--negative)" : "var(--ink)";
+        rowHandoff.innerHTML = "<span>受け渡し(純)</span><span style=\"color:" + hnColor + "\">" +
+          (hn > 0 ? "+" : "") + yen(hn) + "</span>";
+      }
+
       var rowNet = document.createElement("div");
       rowNet.className = "row";
       var net = data.balance[i];
       var netColor = net > 0 ? "var(--positive)" : net < 0 ? "var(--negative)" : "var(--ink)";
-      rowNet.innerHTML = "<span>収支(回収−投資)</span><span style=\"color:" + netColor + "\">" +
+      rowNet.innerHTML = "<span>収支" + (hasHandoffs ? "(回収−投資±受け渡し)" : "(回収−投資)") + "</span><span style=\"color:" + netColor + "\">" +
         (net > 0 ? "+" : "") + yen(net) + "</span>";
 
       var chip = document.createElement("div");
@@ -1826,6 +2009,7 @@
       tile.appendChild(name);
       tile.appendChild(rowInvest);
       tile.appendChild(rowPayout);
+      if (rowHandoff) tile.appendChild(rowHandoff);
       tile.appendChild(rowNet);
       tile.appendChild(chip);
       grid.appendChild(tile);
@@ -1990,6 +2174,10 @@
     selectedPayoutUnit = (prefs.payoutUnit === "coin" || prefs.payoutUnit === "ball") ? prefs.payoutUnit : "yen";
     setUnitToggle("slotInvestUnitToggle", selectedInvestUnit);
     setUnitToggle("slotPayoutUnitToggle", selectedPayoutUnit);
+    selectedHandoffUnit = (prefs.handoffUnit === "coin" || prefs.handoffUnit === "ball") ? prefs.handoffUnit : "yen";
+    setUnitToggle("handoffUnitToggle", selectedHandoffUnit);
+    renderHandoffFromToggle();
+    renderHandoffToToggle();
   }
 
   function renderAll() {
@@ -2001,6 +2189,7 @@
     renderSettlement();
     renderSlotRateField();
     renderSlotList();
+    renderHandoffList();
     renderSlotSummary();
     renderSlotSettlement();
     renderSlotChart();
@@ -2180,6 +2369,34 @@
     syncWrite();
   });
 
+  wireUnitToggle("handoffUnitToggle", function (unit) {
+    selectedHandoffUnit = unit;
+    saveDevicePrefs({ handoffUnit: unit });
+  });
+
+  document.getElementById("handoffForm").addEventListener("submit", function (ev) {
+    ev.preventDefault();
+    var amountInput = document.getElementById("handoffAmountInput");
+    var raw = Math.max(0, Math.round(Number(amountInput.value)) || 0);
+    if (raw === 0) { amountInput.focus(); return; }
+    if (selectedHandoffFrom === selectedHandoffTo) { return; }
+    var record = {
+      id: "h" + Date.now() + Math.random().toString(16).slice(2),
+      from: selectedHandoffFrom,
+      to: selectedHandoffTo,
+      unit: selectedHandoffUnit,
+      at: Date.now()
+    };
+    if (selectedHandoffUnit === "coin" || selectedHandoffUnit === "ball") { record.raw = raw; }
+    else { record.yen = raw; }
+    state.slotHandoffs.push(record);
+    saveDevicePrefs({ handoffUnit: selectedHandoffUnit });
+    amountInput.value = "";
+    amountInput.focus();
+    renderAll();
+    syncWrite();
+  });
+
   document.getElementById("slotRateInput").addEventListener("change", function (ev) {
     state.slotRate = Math.max(1, Math.round(Number(ev.target.value)) || 20);
     renderAll();
@@ -2194,8 +2411,13 @@
 
   document.getElementById("settleUpSlotBtn").addEventListener("click", function () {
     if (!confirm("ここまでのスロット/パチンコ収支を精算済みにします。記録は消えずに残ります。よろしいですか?")) return;
-    var snapshot = { slotRecords: state.slotRecords.slice(), slotDeletedIds: state.slotDeletedIds.slice(), slotSettledAt: state.slotSettledAt };
+    var snapshot = {
+      slotRecords: state.slotRecords.slice(), slotDeletedIds: state.slotDeletedIds.slice(),
+      slotHandoffs: state.slotHandoffs.slice(), slotHandoffDeletedIds: state.slotHandoffDeletedIds.slice(),
+      slotSettledAt: state.slotSettledAt
+    };
     var maxAt = state.slotRecords.reduce(function (m, r) { return Math.max(m, r.at || 0); }, 0);
+    maxAt = state.slotHandoffs.reduce(function (m, h) { return Math.max(m, h.at || 0); }, maxAt);
     state.slotSettledAt = Math.max(Date.now(), maxAt);
     showSlotUndo("精算しました。", snapshot);
     renderAll();
@@ -2204,10 +2426,17 @@
 
   document.getElementById("slotResetBtn").addEventListener("click", function () {
     if (!confirm("スロット/パチンコの記録をすべて削除しますか?(割り勘のデータは変更されません)")) return;
-    var snapshot = { slotRecords: state.slotRecords.slice(), slotDeletedIds: state.slotDeletedIds.slice(), slotSettledAt: state.slotSettledAt };
+    var snapshot = {
+      slotRecords: state.slotRecords.slice(), slotDeletedIds: state.slotDeletedIds.slice(),
+      slotHandoffs: state.slotHandoffs.slice(), slotHandoffDeletedIds: state.slotHandoffDeletedIds.slice(),
+      slotSettledAt: state.slotSettledAt
+    };
     var deletedIds = state.slotRecords.map(function (r) { return r.id; }).concat(state.slotDeletedIds || []);
+    var deletedHandoffIds = state.slotHandoffs.map(function (h) { return h.id; }).concat(state.slotHandoffDeletedIds || []);
     state.slotRecords = [];
     state.slotDeletedIds = uniq(deletedIds);
+    state.slotHandoffs = [];
+    state.slotHandoffDeletedIds = uniq(deletedHandoffIds);
     state.slotSettledAt = 0;
     showSlotUndo("スロット/パチンコの記録を全て消去しました。", snapshot);
     renderAll();
@@ -2277,6 +2506,8 @@
     var deletedIds = state.expenses.map(function (e) { return e.id; }).concat(state.deletedIds || []);
     var keepSlotRecords = state.slotRecords;
     var keepSlotDeletedIds = state.slotDeletedIds;
+    var keepSlotHandoffs = state.slotHandoffs;
+    var keepSlotHandoffDeletedIds = state.slotHandoffDeletedIds;
     var keepSlotRate = state.slotRate;
     var keepBallRate = state.ballRate;
     var keepSlotSettledAt = state.slotSettledAt;
@@ -2284,6 +2515,8 @@
     state.deletedIds = uniq(deletedIds);
     state.slotRecords = keepSlotRecords;
     state.slotDeletedIds = keepSlotDeletedIds;
+    state.slotHandoffs = keepSlotHandoffs;
+    state.slotHandoffDeletedIds = keepSlotHandoffDeletedIds;
     state.slotRate = keepSlotRate;
     state.ballRate = keepBallRate;
     state.slotSettledAt = keepSlotSettledAt;
