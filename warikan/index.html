@@ -403,6 +403,7 @@
     border-top: 1px dashed var(--line);
   }
   .ledger-row:first-child { border-top: none; }
+  .ledger-row.settled { opacity: 0.5; }
 
   .ledger-memo {
     font-size: 14px;
@@ -410,7 +411,8 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  .ledger-memo .sample-tag {
+  .ledger-memo .sample-tag,
+  .settled-tag {
     font-size: 10px;
     font-family: "IBM Plex Mono", monospace;
     color: var(--ink-faint);
@@ -418,6 +420,7 @@
     border-radius: 4px;
     padding: 1px 5px;
     margin-right: 6px;
+    white-space: nowrap;
   }
 
   .payer-badge {
@@ -568,6 +571,13 @@
     cursor: pointer;
   }
   .reset-btn:hover { border-color: var(--negative); color: var(--negative); }
+  .reset-btn.primary {
+    color: var(--accent-strong);
+    border-color: var(--accent);
+    background: var(--accent-soft);
+    font-weight: 700;
+  }
+  .reset-btn.primary:hover { border-color: var(--accent-strong); color: var(--accent-strong); }
 
   @media (max-width: 420px) {
     .expense-form { grid-template-columns: 1fr; }
@@ -600,6 +610,12 @@
   }
 
   /* ---------- Slot: rate field ---------- */
+  .rate-row {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin: 8px 0 4px;
+  }
   .rate-field {
     display: flex;
     align-items: center;
@@ -682,6 +698,7 @@
     gap: 8px;
     padding: 7px 0;
   }
+  .slot-row.settled { opacity: 0.5; }
   .slot-row .payer-badge {
     background: transparent;
   }
@@ -736,6 +753,19 @@
     font-family: "IBM Plex Mono", monospace;
     font-variant-numeric: tabular-nums;
     font-size: 16px;
+  }
+  .lifetime-total {
+    margin-top: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 12px;
+    color: var(--ink-soft);
+    padding: 0 2px;
+  }
+  .lifetime-total .amt {
+    font-family: "IBM Plex Mono", monospace;
+    font-variant-numeric: tabular-nums;
   }
 
   /* ---------- Slot: chart ---------- */
@@ -851,7 +881,7 @@
 
   <div class="tabbar" role="tablist">
     <button type="button" class="tab-btn" id="tabBtnWarikan" role="tab" aria-selected="true">💰 割り勘</button>
-    <button type="button" class="tab-btn" id="tabBtnSlot" role="tab" aria-selected="false">🎰 スロット収支</button>
+    <button type="button" class="tab-btn" id="tabBtnSlot" role="tab" aria-selected="false">🎰 スロット/パチンコ</button>
   </div>
 
   <div id="sampleBanner" class="banner" hidden>
@@ -896,7 +926,7 @@
 
   <div class="card">
     <h2>一人あたりの収支</h2>
-    <p class="hint">支払った金額 − 一人分の負担額</p>
+    <p class="hint">前回の精算以降の、支払った金額 − 一人分の負担額</p>
     <div class="summary-grid" id="summaryGrid"></div>
   </div>
 
@@ -906,11 +936,12 @@
     <div id="settleBody"></div>
   </div>
 
-  <div style="display:flex; justify-content:center;">
-    <button class="reset-btn" id="resetBtn" type="button">すべてリセット</button>
+  <div style="display:flex; justify-content:center; gap:10px; flex-wrap:wrap;">
+    <button class="reset-btn primary" id="settleUpExpensesBtn" type="button">この時点で精算する</button>
+    <button class="reset-btn" id="resetBtn" type="button">全データを消去</button>
   </div>
 
-  <p class="footer-note">このリンクを開いた3人で内容が共有されます(誰かが入力すると、他の人が開いたときに反映されます)。<br />ログイン不要ですが、URLを知っている人は誰でも編集できます。旅費の記録以外には使わないでください。</p>
+  <p class="footer-note">このリンクを開いた3人で内容が共有されます(誰かが入力すると、他の人が開いたときに反映されます)。<br />ログイン不要ですが、URLを知っている人は誰でも編集できます。旅費の記録以外には使わないでください。<br />「この時点で精算する」は記録を消さずに区切りだけつけます。「全データを消去」は履歴も含めて全部消えます。</p>
 
   </div>
 
@@ -918,11 +949,11 @@
 
   <div class="card">
     <h2>記録を追加</h2>
-    <p class="hint">台・人ごとに投資と回収を入力してください。円・枚のどちらか片方でOKです。追加すると全員に共有されます。</p>
+    <p class="hint">台・人ごとに投資と回収を入力してください。円・枚・球のどれか1つでOKです。追加すると全員に共有されます。</p>
     <form class="expense-form" id="slotForm">
       <div class="field-full">
         <label for="slotMachineInput">台番号・機種名</label>
-        <input id="slotMachineInput" type="text" placeholder="例:番長3 #123" maxlength="30" required />
+        <input id="slotMachineInput" type="text" placeholder="例:番長3 #123 / CR花の慶次 #45" maxlength="30" required />
       </div>
       <div class="field-full">
         <label>打った人</label>
@@ -934,6 +965,7 @@
           <div class="unit-toggle" id="slotInvestUnitToggle">
             <button type="button" data-unit="yen" aria-pressed="true">円</button>
             <button type="button" data-unit="coin" aria-pressed="false">枚</button>
+            <button type="button" data-unit="ball" aria-pressed="false">球</button>
           </div>
           <input id="slotInvestInput" type="number" min="0" step="1" inputmode="numeric" placeholder="0" />
         </div>
@@ -944,6 +976,7 @@
           <div class="unit-toggle" id="slotPayoutUnitToggle">
             <button type="button" data-unit="yen" aria-pressed="true">円</button>
             <button type="button" data-unit="coin" aria-pressed="false">枚</button>
+            <button type="button" data-unit="ball" aria-pressed="false">球</button>
           </div>
           <input id="slotPayoutInput" type="number" min="0" step="1" inputmode="numeric" placeholder="0" />
         </div>
@@ -956,21 +989,29 @@
   <div class="card">
     <div class="ledger-head">
       <h2 style="margin:0;">台・人ごとの記録</h2>
+    </div>
+    <div class="rate-row">
       <div class="rate-field">
         <label for="slotRateInput">1枚</label>
         <input id="slotRateInput" type="number" min="1" step="1" inputmode="numeric" />
         <label for="slotRateInput">円</label>
       </div>
+      <div class="rate-field">
+        <label for="ballRateInput">1球</label>
+        <input id="ballRateInput" type="number" min="1" step="1" inputmode="numeric" />
+        <label for="ballRateInput">円</label>
+      </div>
     </div>
-    <p class="hint">金額はタップして直接編集できます。差枚はレートからの概算です。</p>
+    <p class="hint">金額はタップして直接編集できます。グレー表示は精算済みの記録です。</p>
     <div id="slotListBody"></div>
   </div>
 
   <div class="card">
     <h2>人ごとの収支</h2>
-    <p class="hint">回収合計 − 投資合計</p>
+    <p class="hint">前回の精算以降の、回収合計 − 投資合計</p>
     <div class="summary-grid" id="slotSummaryGrid"></div>
     <div class="group-total-bar" id="slotGroupTotal"></div>
+    <div class="lifetime-total" id="slotLifetimeTotal"></div>
   </div>
 
   <div class="card">
@@ -985,11 +1026,12 @@
     <div id="slotChartBody"></div>
   </div>
 
-  <div style="display:flex; justify-content:center;">
-    <button class="reset-btn" id="slotResetBtn" type="button">スロットデータをすべてリセット</button>
+  <div style="display:flex; justify-content:center; gap:10px; flex-wrap:wrap;">
+    <button class="reset-btn primary" id="settleUpSlotBtn" type="button">この時点で精算する</button>
+    <button class="reset-btn" id="slotResetBtn" type="button">全データを消去</button>
   </div>
 
-  <p class="footer-note">スロットの記録も割り勘と同じリンクで共有されます。台・機種名でグループ化して表示しています。</p>
+  <p class="footer-note">スロット/パチンコの記録も割り勘と同じリンクで共有されます。台・機種名でグループ化して表示しています。<br />「この時点で精算する」は記録を消さずに区切りだけつけます。「全データを消去」は履歴も含めて全部消えます。</p>
 
   </div>
 
@@ -1031,9 +1073,12 @@
       ],
       deletedIds: [],
       isSample: true,
+      expenseSettledAt: 0,
       slotRecords: [],
       slotDeletedIds: [],
       slotRate: 20,
+      ballRate: 4,
+      slotSettledAt: 0,
       updatedAt: new Date(now).toISOString()
     };
   }
@@ -1146,19 +1191,26 @@
       expenses: exp.records,
       deletedIds: exp.deletedIds,
       isSample: local.isSample && exp.records.every(function (e) { return e.sample; }),
+      expenseSettledAt: Math.max(local.expenseSettledAt || 0, remote.expenseSettledAt || 0),
       slotRecords: slot.records,
       slotDeletedIds: slot.deletedIds,
       slotRate: local.slotRate || remote.slotRate || 20,
+      ballRate: local.ballRate || remote.ballRate || 4,
+      slotSettledAt: Math.max(local.slotSettledAt || 0, remote.slotSettledAt || 0),
       updatedAt: new Date().toISOString()
     };
   }
 
   // Fills in fields added after a trip was first created, so a bin saved
-  // before the slot feature existed doesn't crash the new screens.
+  // before the slot feature (or a later addition to it) existed doesn't
+  // crash the new screens.
   function normalizeState(s) {
+    s.expenseSettledAt = s.expenseSettledAt || 0;
     s.slotRecords = s.slotRecords || [];
     s.slotDeletedIds = s.slotDeletedIds || [];
     s.slotRate = s.slotRate || 20;
+    s.ballRate = s.ballRate || 4;
+    s.slotSettledAt = s.slotSettledAt || 0;
     return s;
   }
 
@@ -1201,19 +1253,28 @@
   }
 
   // ---------- computations ----------
+  // Scoped to expenses added since the last settlement checkpoint (see
+  // the "この時点で精算する" button): that's what still needs paying.
+  // lifetimeTotal covers every expense ever, settled or not, so the
+  // total spend stays visible even after settling up.
   function computeBalances() {
+    var settledAt = state.expenseSettledAt || 0;
     var total = 0;
+    var lifetimeTotal = 0;
     var paid = [0, 0, 0];
     state.expenses.forEach(function (e) {
-      total += e.amount;
-      paid[e.payer] += e.amount;
+      lifetimeTotal += e.amount;
+      if (e.at > settledAt) {
+        total += e.amount;
+        paid[e.payer] += e.amount;
+      }
     });
     var base = Math.floor(total / 3);
     var remainder = total - base * 3;
     var share = [base, base, base];
     for (var i = 0; i < remainder; i++) share[i] += 1;
     var balance = [0, 1, 2].map(function (i) { return paid[i] - share[i]; });
-    return { total: total, paid: paid, share: share, balance: balance };
+    return { total: total, paid: paid, share: share, balance: balance, lifetimeTotal: lifetimeTotal };
   }
 
   function computeSettlement(balance) {
@@ -1317,7 +1378,8 @@
     var body = document.getElementById("ledgerBody");
     var totalEl = document.getElementById("ledgerTotal");
     var data = computeBalances();
-    totalEl.textContent = "合計 " + yen(data.total);
+    totalEl.textContent = "合計 " + yen(data.lifetimeTotal) +
+      (state.expenseSettledAt ? "(未精算 " + yen(data.total) + ")" : "");
 
     document.getElementById("sampleBanner").hidden = !state.isSample;
 
@@ -1331,11 +1393,13 @@
     }
     state.expenses.forEach(function (e) {
       var row = document.createElement("div");
-      row.className = "ledger-row";
+      var isSettled = e.at <= (state.expenseSettledAt || 0);
+      row.className = "ledger-row" + (isSettled ? " settled" : "");
 
       var memo = document.createElement("div");
       memo.className = "ledger-memo";
       memo.innerHTML = (e.sample ? '<span class="sample-tag">例</span>' : "") +
+        (isSettled ? '<span class="settled-tag">精算済</span>' : "") +
         (e.memo ? escapeHtml(e.memo) : '<span style="color:var(--ink-faint)">(内容なし)</span>');
 
       var badge = document.createElement("span");
@@ -1413,7 +1477,7 @@
     if (data.total === 0) {
       var none = document.createElement("div");
       none.className = "settle-done";
-      none.textContent = "まだ支払いがありません。";
+      none.textContent = data.lifetimeTotal > 0 ? "✓ 前回の精算以降、支払いはありません。" : "まだ支払いがありません。";
       body.appendChild(none);
       return;
     }
@@ -1442,31 +1506,48 @@
 
   // ---------- slot: computations ----------
   // A record's invest/payout can be entered as yen (invest/payout, the
-  // default) or as a medal count (investRaw/payoutRaw with unit "coin"),
-  // converted to yen at the group's current rate. These two accessors are
-  // the only place that distinction matters -- everything downstream just
-  // deals in yen.
+  // default), a slot medal count (investRaw/payoutRaw with unit "coin"),
+  // or a pachinko ball count (unit "ball"), converted to yen at the
+  // group's current rate for that unit. These two accessors are the only
+  // place that distinction matters -- everything downstream just deals
+  // in yen, and the conversion is live (a later rate correction re-prices
+  // existing coin/ball records rather than locking in the entry-time rate).
   function recordInvestYen(r) {
-    return r.investUnit === "coin" ? Math.round((r.investRaw || 0) * (state.slotRate || 20)) : (r.invest || 0);
+    if (r.investUnit === "coin") return Math.round((r.investRaw || 0) * (state.slotRate || 20));
+    if (r.investUnit === "ball") return Math.round((r.investRaw || 0) * (state.ballRate || 4));
+    return r.invest || 0;
   }
 
   function recordPayoutYen(r) {
-    return r.payoutUnit === "coin" ? Math.round((r.payoutRaw || 0) * (state.slotRate || 20)) : (r.payout || 0);
+    if (r.payoutUnit === "coin") return Math.round((r.payoutRaw || 0) * (state.slotRate || 20));
+    if (r.payoutUnit === "ball") return Math.round((r.payoutRaw || 0) * (state.ballRate || 4));
+    return r.payout || 0;
   }
 
+  // Scoped to records added since the last settlement checkpoint, same
+  // idea as computeBalances() on the 割り勘 tab. lifetimeInvest/Payout
+  // cover every record ever, so total spend stays visible after settling.
   function computeSlotTotals() {
+    var settledAt = state.slotSettledAt || 0;
     var invest = [0, 0, 0];
     var payout = [0, 0, 0];
+    var lifetimeInvest = 0, lifetimePayout = 0;
     state.slotRecords.forEach(function (r) {
-      invest[r.payer] += recordInvestYen(r);
-      payout[r.payer] += recordPayoutYen(r);
+      var iy = recordInvestYen(r), py = recordPayoutYen(r);
+      lifetimeInvest += iy;
+      lifetimePayout += py;
+      if (r.at > settledAt) {
+        invest[r.payer] += iy;
+        payout[r.payer] += py;
+      }
     });
     var balance = [0, 1, 2].map(function (i) { return payout[i] - invest[i]; });
     var totalInvest = invest[0] + invest[1] + invest[2];
     var totalPayout = payout[0] + payout[1] + payout[2];
     return {
       invest: invest, payout: payout, balance: balance,
-      totalInvest: totalInvest, totalPayout: totalPayout, total: totalPayout - totalInvest
+      totalInvest: totalInvest, totalPayout: totalPayout, total: totalPayout - totalInvest,
+      lifetimeInvest: lifetimeInvest, lifetimePayout: lifetimePayout, lifetimeTotal: lifetimePayout - lifetimeInvest
     };
   }
 
@@ -1486,9 +1567,16 @@
     return { share: share, personalNet: totals.balance, settleBalance: settleBalance, total: total };
   }
 
-  function diffMedals(yenDiff) {
-    var rate = state.slotRate || 20;
-    return Math.round(yenDiff / rate);
+  // An exact (not estimated) unit-count difference for one record, only
+  // when both sides used the same non-yen unit -- once slots and pachinko
+  // (different rates) can mix within a group, a yen-derived "estimate"
+  // stops meaning anything, so this only speaks when the count is exact.
+  function recordUnitDiffText(r) {
+    if (!r.investUnit || r.investUnit !== r.payoutUnit) return "";
+    if (r.investUnit !== "coin" && r.investUnit !== "ball") return "";
+    var label = r.investUnit === "coin" ? "枚" : "球";
+    var raw = (r.payoutRaw || 0) - (r.investRaw || 0);
+    return "(差" + (raw >= 0 ? "+" : "") + raw + label + ")";
   }
 
   function groupSlotRecords() {
@@ -1520,10 +1608,13 @@
   // ---------- slot: rendering ----------
   function renderSlotRateField() {
     var el = document.getElementById("slotRateInput");
-    if (document.activeElement === el) return;
-    el.value = state.slotRate || 20;
+    if (document.activeElement !== el) el.value = state.slotRate || 20;
+    var ballEl = document.getElementById("ballRateInput");
+    if (document.activeElement !== ballEl) ballEl.value = state.ballRate || 4;
     var hint = document.getElementById("slotUnitHint");
-    if (hint) hint.textContent = "枚で入力すると、現在のレート(1枚" + (state.slotRate || 20) + "円)で円に換算されます。";
+    if (hint) {
+      hint.textContent = "枚=1枚" + (state.slotRate || 20) + "円、球=1球" + (state.ballRate || 4) + "円で円に換算されます(下のレート欄でいつでも変更できます)。";
+    }
   }
 
   function renderSlotList() {
@@ -1549,12 +1640,13 @@
       head.className = "machine-head";
       head.innerHTML =
         '<span class="machine-name">' + escapeHtml(g.name) + "</span>" +
-        '<span class="machine-sub">' + yen(gDiff) + "(差枚 " + (gDiff >= 0 ? "+" : "") + diffMedals(gDiff) + ")</span>";
+        '<span class="machine-sub">' + yen(gDiff) + "</span>";
       wrap.appendChild(head);
 
       g.records.forEach(function (r) {
         var row = document.createElement("div");
-        row.className = "slot-row";
+        var isSettled = r.at <= (state.slotSettledAt || 0);
+        row.className = "slot-row" + (isSettled ? " settled" : "");
 
         var badge = document.createElement("span");
         badge.className = "payer-badge";
@@ -1564,8 +1656,9 @@
 
         var investField = document.createElement("div");
         investField.className = "slot-field";
-        var investNote = r.investUnit === "coin" ? ' <span class="slot-field-note">(' + r.investRaw + "枚)</span>" : "";
-        investField.innerHTML = '<span class="slot-field-label">投資' + investNote + "</span>";
+        var investUnitLabel = r.investUnit === "coin" ? "枚" : r.investUnit === "ball" ? "球" : "";
+        var investNote = investUnitLabel ? ' <span class="slot-field-note">(' + r.investRaw + investUnitLabel + ")</span>" : "";
+        investField.innerHTML = '<span class="slot-field-label">投資' + (isSettled ? ' <span class="settled-tag">精算済</span>' : "") + investNote + "</span>";
         var investInput = document.createElement("input");
         investInput.className = "mini-input";
         investInput.type = "number";
@@ -1585,7 +1678,8 @@
 
         var payoutField = document.createElement("div");
         payoutField.className = "slot-field";
-        var payoutNote = r.payoutUnit === "coin" ? ' <span class="slot-field-note">(' + r.payoutRaw + "枚)</span>" : "";
+        var payoutUnitLabel = r.payoutUnit === "coin" ? "枚" : r.payoutUnit === "ball" ? "球" : "";
+        var payoutNote = payoutUnitLabel ? ' <span class="slot-field-note">(' + r.payoutRaw + payoutUnitLabel + ")</span>" : "";
         payoutField.innerHTML = '<span class="slot-field-label">回収' + payoutNote + "</span>";
         var payoutInput = document.createElement("input");
         payoutInput.className = "mini-input";
@@ -1622,7 +1716,7 @@
         var diff = document.createElement("div");
         var d = recordPayoutYen(r) - recordInvestYen(r);
         diff.className = "slot-diff" + (d > 0 ? " positive" : d < 0 ? " negative" : "");
-        diff.textContent = yen(d) + "(差枚 " + (d >= 0 ? "+" : "") + diffMedals(d) + "枚)";
+        diff.textContent = yen(d) + recordUnitDiffText(r);
         row.appendChild(diff);
 
         wrap.appendChild(row);
@@ -1661,11 +1755,6 @@
       rowNet.innerHTML = "<span>収支(回収−投資)</span><span style=\"color:" + netColor + "\">" +
         (net > 0 ? "+" : "") + yen(net) + "</span>";
 
-      var rowMedal = document.createElement("div");
-      rowMedal.className = "row";
-      var m = diffMedals(net);
-      rowMedal.innerHTML = "<span>差枚(概算)</span><span>" + (m >= 0 ? "+" : "") + m + "枚</span>";
-
       var chip = document.createElement("div");
       var sb = settle.settleBalance[i];
       var cls = sb > 0 ? "positive" : sb < 0 ? "negative" : "zero";
@@ -1676,7 +1765,6 @@
       tile.appendChild(rowInvest);
       tile.appendChild(rowPayout);
       tile.appendChild(rowNet);
-      tile.appendChild(rowMedal);
       tile.appendChild(chip);
       grid.appendChild(tile);
     }
@@ -1685,8 +1773,15 @@
     var t = data.total;
     var tColor = t > 0 ? "var(--positive)" : t < 0 ? "var(--negative)" : "var(--ink)";
     totalBar.innerHTML =
-      "<span>グループ合計</span>" +
+      "<span>未精算分の合計</span>" +
       '<span class="amt" style="color:' + tColor + '">' + (t > 0 ? "+" : "") + yen(t) + "</span>";
+
+    var lifetimeBar = document.getElementById("slotLifetimeTotal");
+    var lt = data.lifetimeTotal;
+    var ltColor = lt > 0 ? "var(--positive)" : lt < 0 ? "var(--negative)" : "var(--ink-soft)";
+    lifetimeBar.innerHTML =
+      "<span>全期間の合計(精算済み分も含む)</span>" +
+      '<span class="amt" style="color:' + ltColor + '">' + (lt > 0 ? "+" : "") + yen(lt) + "</span>";
   }
 
   function renderSlotSettlement() {
@@ -1695,10 +1790,11 @@
     var tx = computeSettlement(settle.settleBalance);
     body.innerHTML = "";
 
-    if (state.slotRecords.length === 0) {
+    var hasUnsettled = state.slotRecords.some(function (r) { return r.at > (state.slotSettledAt || 0); });
+    if (!hasUnsettled) {
       var none = document.createElement("div");
       none.className = "settle-done";
-      none.textContent = "まだ記録がありません。";
+      none.textContent = state.slotRecords.length > 0 ? "✓ 前回の精算以降、記録はありません。" : "まだ記録がありません。";
       body.appendChild(none);
       return;
     }
@@ -1828,8 +1924,8 @@
       selectedSlotPayer = typeof prefs.slotPayer === "number" ? prefs.slotPayer : 0;
     }
     renderSlotPayerToggle();
-    selectedInvestUnit = prefs.investUnit === "coin" ? "coin" : "yen";
-    selectedPayoutUnit = prefs.payoutUnit === "coin" ? "coin" : "yen";
+    selectedInvestUnit = (prefs.investUnit === "coin" || prefs.investUnit === "ball") ? prefs.investUnit : "yen";
+    selectedPayoutUnit = (prefs.payoutUnit === "coin" || prefs.payoutUnit === "ball") ? prefs.payoutUnit : "yen";
     setUnitToggle("slotInvestUnitToggle", selectedInvestUnit);
     setUnitToggle("slotPayoutUnitToggle", selectedPayoutUnit);
   }
@@ -2006,9 +2102,9 @@
       payoutUnit: selectedPayoutUnit,
       at: Date.now()
     };
-    if (selectedInvestUnit === "coin") { record.investRaw = investRaw; record.invest = 0; }
+    if (selectedInvestUnit === "coin" || selectedInvestUnit === "ball") { record.investRaw = investRaw; record.invest = 0; }
     else { record.invest = investRaw; }
-    if (selectedPayoutUnit === "coin") { record.payoutRaw = payoutRaw; record.payout = 0; }
+    if (selectedPayoutUnit === "coin" || selectedPayoutUnit === "ball") { record.payoutRaw = payoutRaw; record.payout = 0; }
     else { record.payout = payoutRaw; }
     state.slotRecords.push(record);
     saveDevicePrefs({
@@ -2028,11 +2124,26 @@
     syncWrite();
   });
 
+  document.getElementById("ballRateInput").addEventListener("change", function (ev) {
+    state.ballRate = Math.max(1, Math.round(Number(ev.target.value)) || 4);
+    renderAll();
+    syncWrite();
+  });
+
+  document.getElementById("settleUpSlotBtn").addEventListener("click", function () {
+    if (!confirm("ここまでのスロット/パチンコ収支を精算済みにします。記録は消えずに残ります。よろしいですか?")) return;
+    var maxAt = state.slotRecords.reduce(function (m, r) { return Math.max(m, r.at || 0); }, 0);
+    state.slotSettledAt = Math.max(Date.now(), maxAt);
+    renderAll();
+    syncWrite();
+  });
+
   document.getElementById("slotResetBtn").addEventListener("click", function () {
-    if (!confirm("スロットの記録をすべて削除しますか?(割り勘のデータは変更されません)")) return;
+    if (!confirm("スロット/パチンコの記録をすべて削除しますか?(割り勘のデータは変更されません)")) return;
     var deletedIds = state.slotRecords.map(function (r) { return r.id; }).concat(state.slotDeletedIds || []);
     state.slotRecords = [];
     state.slotDeletedIds = uniq(deletedIds);
+    state.slotSettledAt = 0;
     renderAll();
     syncWrite();
   });
@@ -2067,17 +2178,29 @@
     syncWrite();
   });
 
+  document.getElementById("settleUpExpensesBtn").addEventListener("click", function () {
+    if (!confirm("ここまでの支払いを精算済みにします。記録は消えずに残ります。よろしいですか?")) return;
+    var maxAt = state.expenses.reduce(function (m, e) { return Math.max(m, e.at || 0); }, 0);
+    state.expenseSettledAt = Math.max(Date.now(), maxAt);
+    renderAll();
+    syncWrite();
+  });
+
   document.getElementById("resetBtn").addEventListener("click", function () {
-    if (!confirm("入力した内容をすべて削除して、最初からやり直しますか?(全員に反映されます。スロットの記録は変更されません)")) return;
+    if (!confirm("入力した内容をすべて削除して、最初からやり直しますか?(全員に反映されます。スロット/パチンコの記録は変更されません)")) return;
     var deletedIds = state.expenses.map(function (e) { return e.id; }).concat(state.deletedIds || []);
     var keepSlotRecords = state.slotRecords;
     var keepSlotDeletedIds = state.slotDeletedIds;
     var keepSlotRate = state.slotRate;
+    var keepBallRate = state.ballRate;
+    var keepSlotSettledAt = state.slotSettledAt;
     state = defaultState();
     state.deletedIds = uniq(deletedIds);
     state.slotRecords = keepSlotRecords;
     state.slotDeletedIds = keepSlotDeletedIds;
     state.slotRate = keepSlotRate;
+    state.ballRate = keepBallRate;
+    state.slotSettledAt = keepSlotSettledAt;
     selectedPayer = 0;
     renderAll();
     syncWrite();
