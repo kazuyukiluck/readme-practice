@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>大阪・奈良 パチスロ店 設定良さそう度チェッカー</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header class="app-header">
+  <div class="header-top">
+    <h1>大阪・奈良 パチスロ店 設定良さそう度チェッカー</h1>
+    <div class="header-actions">
+      <button id="btn-export" class="btn btn-ghost">エクスポート</button>
+      <label class="btn btn-ghost file-label">
+        インポート
+        <input type="file" id="input-import" accept="application/json" hidden>
+      </label>
+      <button id="btn-add-shop" class="btn btn-primary">＋ 店舗を追加</button>
+    </div>
+  </div>
+  <p class="disclaimer">
+    このツールは、実戦データ・口コミともに<strong>手入力した情報</strong>を集計して表示する個人用の判断補助ツールです。
+    データスコープ等の公式APIは存在しないため自動取得は行っていません。LINE通知やアナスロ等の実戦データ、
+    5ch・みんパチ等で見かけた口コミの要点をコピペ・入力してご利用ください。
+    <strong>情報が無い/古い店舗は「おすすめ」とは表示しません。</strong>
+  </p>
+  <div class="toolbar">
+    <label>エリア
+      <select id="filter-area">
+        <option value="all">すべて</option>
+        <option value="osaka">大阪</option>
+        <option value="nara">奈良</option>
+      </select>
+    </label>
+    <label>並び替え
+      <select id="sort-key">
+        <option value="overall">総合スコア順</option>
+        <option value="match">実戦データ順</option>
+        <option value="review">口コミ順</option>
+        <option value="name">店名順</option>
+      </select>
+    </label>
+    <label>店名検索
+      <input type="search" id="search-name" placeholder="店名で絞り込み">
+    </label>
+    <label>実戦データの鮮度しきい値(日)
+      <input type="number" id="freshness-days" min="1" max="30" value="7">
+    </label>
+  </div>
+</header>
+
+<main id="shop-list" class="shop-list"></main>
+
+<footer class="app-footer">
+  <details>
+    <summary>スコアの考え方(必ず読んでください)</summary>
+    <ul>
+      <li>実戦データは、入力された差枚・G数・BB/RB回数をもとにした<strong>簡易的な目安</strong>であり、設定判別を保証するものではありません。</li>
+      <li>直近<span id="fresh-days-label">7</span>日以内のデータが無い場合は「データなし/古いデータ」として扱い、おすすめには含めません。</li>
+      <li>口コミは主観的な投稿の要約であり、事実の裏付けがあるものではありません。参考程度にご利用ください。</li>
+      <li>最終判断は、必ず現地の設置状況・出玉状況をご自身の目で確認のうえ行ってください。</li>
+    </ul>
+  </details>
+</footer>
+
+<div id="modal-root" class="modal-root" hidden></div>
+
+<script src="js/data.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
