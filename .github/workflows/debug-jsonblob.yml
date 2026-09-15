@@ -1,0 +1,57 @@
+name: Debug JSON storage API
+on:
+  workflow_dispatch: {}
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: jsonblob.com - CORS preflight (OPTIONS)
+        run: |
+          curl -sS -i -X OPTIONS "https://jsonblob.com/api/jsonBlob" \
+            -H "Origin: https://kazuyukiluck.github.io" \
+            -H "Access-Control-Request-Method: POST" \
+            -H "Access-Control-Request-Headers: content-type" || true
+        continue-on-error: true
+
+      - name: jsonblob.com - create blob (POST)
+        run: |
+          curl -sS -i -X POST "https://jsonblob.com/api/jsonBlob" \
+            -H "Content-Type: application/json" \
+            -H "Accept: application/json" \
+            -H "Origin: https://kazuyukiluck.github.io" \
+            -d '{"hello":"world"}' | tee /tmp/create_resp.txt
+        continue-on-error: true
+
+      - name: jsonblob.com - extract id and GET it back
+        run: |
+          LOC=$(grep -i '^Location:' /tmp/create_resp.txt | tail -1 | tr -d '\r' | awk '{print $2}')
+          echo "Location header: $LOC"
+          if [ -n "$LOC" ]; then
+            curl -sS -i "$LOC" -H "Origin: https://kazuyukiluck.github.io"
+          fi
+        continue-on-error: true
+
+      - name: npoint.io - create doc (POST)
+        run: |
+          curl -sS -i -X POST "https://api.npoint.io/" \
+            -H "Content-Type: application/json" \
+            -H "Origin: https://kazuyukiluck.github.io" \
+            -d '{"hello":"world"}'
+        continue-on-error: true
+
+      - name: jsonstorage.net - create doc (POST)
+        run: |
+          curl -sS -i -X POST "https://api.jsonstorage.net/v1/json" \
+            -H "Content-Type: application/json" \
+            -H "Origin: https://kazuyukiluck.github.io" \
+            -d '{"hello":"world"}'
+        continue-on-error: true
+
+      - name: extendsclass - create bin (POST)
+        run: |
+          curl -sS -i -X POST "https://api.extendsclass.com/x/bin" \
+            -H "Content-Type: application/json" \
+            -H "Origin: https://kazuyukiluck.github.io" \
+            -d '{"hello":"world"}'
+        continue-on-error: true
