@@ -1,6 +1,11 @@
 name: Debug JSON storage API
 on:
   workflow_dispatch: {}
+  push:
+    branches:
+      - claude/three-person-trip-split-d8uwv1
+    paths:
+      - .github/workflows/debug-jsonblob.yml
 
 jobs:
   probe:
