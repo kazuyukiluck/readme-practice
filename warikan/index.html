@@ -896,6 +896,14 @@
 
   <div id="tabWarikan">
 
+  <div id="expenseUndoBanner" class="banner" hidden>
+    <span id="expenseUndoText"></span>
+    <span style="display:flex; gap:6px;">
+      <button id="expenseUndoBtn" type="button">元に戻す</button>
+      <button id="expenseUndoDismissBtn" type="button">閉じる</button>
+    </span>
+  </div>
+
   <div class="card">
     <h2>支払いを記録する</h2>
     <p class="hint">誰が・いくら払ったかを入力してください。追加すると全員に共有されます。</p>
@@ -946,6 +954,14 @@
   </div>
 
   <div id="tabSlot" hidden>
+
+  <div id="slotUndoBanner" class="banner" hidden>
+    <span id="slotUndoText"></span>
+    <span style="display:flex; gap:6px;">
+      <button id="slotUndoBtn" type="button">元に戻す</button>
+      <button id="slotUndoDismissBtn" type="button">閉じる</button>
+    </span>
+  </div>
 
   <div class="card">
     <h2>記録を追加</h2>
@@ -1060,6 +1076,11 @@
   var writeQueued = false;
   var nameSyncTimer = null;
   var activeTab = "warikan";
+  // Snapshots for the "元に戻す" undo banners: only the single most recent
+  // reset/settle action per tab is undoable, and only in this tab (memory
+  // only, lost on reload -- the same tradeoff as any "undo" toast).
+  var expenseUndoSnapshot = null;
+  var slotUndoSnapshot = null;
 
   function defaultState() {
     var now = Date.now();
@@ -1212,6 +1233,47 @@
     s.ballRate = s.ballRate || 4;
     s.slotSettledAt = s.slotSettledAt || 0;
     return s;
+  }
+
+  // ---------- undo ----------
+  // Restoring a full-wipe snapshot re-merges the old records back in
+  // (rather than blindly overwriting), so anything another device added
+  // to the freshly-reset state in the meantime survives the undo too.
+  function restoreExpenseResetSnapshot(snap) {
+    var merged = mergeRecords(snap.expenses, state.expenses, snap.deletedIds, state.deletedIds);
+    state.tripTitle = snap.tripTitle;
+    state.members = snap.members;
+    state.expenses = merged.records;
+    state.deletedIds = merged.deletedIds;
+    state.isSample = snap.isSample && merged.records.every(function (e) { return e.sample; });
+    state.expenseSettledAt = snap.expenseSettledAt;
+  }
+
+  function restoreSlotResetSnapshot(snap) {
+    var merged = mergeRecords(snap.slotRecords, state.slotRecords, snap.slotDeletedIds, state.slotDeletedIds);
+    state.slotRecords = merged.records;
+    state.slotDeletedIds = merged.deletedIds;
+    state.slotSettledAt = snap.slotSettledAt;
+  }
+
+  function showExpenseUndo(text, snapshot) {
+    expenseUndoSnapshot = snapshot;
+    document.getElementById("expenseUndoText").textContent = text;
+    document.getElementById("expenseUndoBanner").hidden = false;
+  }
+  function hideExpenseUndo() {
+    expenseUndoSnapshot = null;
+    document.getElementById("expenseUndoBanner").hidden = true;
+  }
+
+  function showSlotUndo(text, snapshot) {
+    slotUndoSnapshot = snapshot;
+    document.getElementById("slotUndoText").textContent = text;
+    document.getElementById("slotUndoBanner").hidden = false;
+  }
+  function hideSlotUndo() {
+    slotUndoSnapshot = null;
+    document.getElementById("slotUndoBanner").hidden = true;
   }
 
   // ---------- UI helpers ----------
@@ -2132,21 +2194,34 @@
 
   document.getElementById("settleUpSlotBtn").addEventListener("click", function () {
     if (!confirm("ここまでのスロット/パチンコ収支を精算済みにします。記録は消えずに残ります。よろしいですか?")) return;
+    var snapshot = { slotRecords: state.slotRecords.slice(), slotDeletedIds: state.slotDeletedIds.slice(), slotSettledAt: state.slotSettledAt };
     var maxAt = state.slotRecords.reduce(function (m, r) { return Math.max(m, r.at || 0); }, 0);
     state.slotSettledAt = Math.max(Date.now(), maxAt);
+    showSlotUndo("精算しました。", snapshot);
     renderAll();
     syncWrite();
   });
 
   document.getElementById("slotResetBtn").addEventListener("click", function () {
     if (!confirm("スロット/パチンコの記録をすべて削除しますか?(割り勘のデータは変更されません)")) return;
+    var snapshot = { slotRecords: state.slotRecords.slice(), slotDeletedIds: state.slotDeletedIds.slice(), slotSettledAt: state.slotSettledAt };
     var deletedIds = state.slotRecords.map(function (r) { return r.id; }).concat(state.slotDeletedIds || []);
     state.slotRecords = [];
     state.slotDeletedIds = uniq(deletedIds);
     state.slotSettledAt = 0;
+    showSlotUndo("スロット/パチンコの記録を全て消去しました。", snapshot);
     renderAll();
     syncWrite();
   });
+
+  document.getElementById("slotUndoBtn").addEventListener("click", function () {
+    if (!slotUndoSnapshot) return;
+    restoreSlotResetSnapshot(slotUndoSnapshot);
+    hideSlotUndo();
+    renderAll();
+    syncWrite();
+  });
+  document.getElementById("slotUndoDismissBtn").addEventListener("click", hideSlotUndo);
 
   document.getElementById("clearSampleBtn").addEventListener("click", function () {
     clearSampleIfNeeded();
@@ -2180,14 +2255,25 @@
 
   document.getElementById("settleUpExpensesBtn").addEventListener("click", function () {
     if (!confirm("ここまでの支払いを精算済みにします。記録は消えずに残ります。よろしいですか?")) return;
+    var snapshot = {
+      tripTitle: state.tripTitle, members: state.members.slice(),
+      expenses: state.expenses.slice(), deletedIds: state.deletedIds.slice(),
+      isSample: state.isSample, expenseSettledAt: state.expenseSettledAt
+    };
     var maxAt = state.expenses.reduce(function (m, e) { return Math.max(m, e.at || 0); }, 0);
     state.expenseSettledAt = Math.max(Date.now(), maxAt);
+    showExpenseUndo("精算しました。", snapshot);
     renderAll();
     syncWrite();
   });
 
   document.getElementById("resetBtn").addEventListener("click", function () {
     if (!confirm("入力した内容をすべて削除して、最初からやり直しますか?(全員に反映されます。スロット/パチンコの記録は変更されません)")) return;
+    var snapshot = {
+      tripTitle: state.tripTitle, members: state.members.slice(),
+      expenses: state.expenses.slice(), deletedIds: state.deletedIds.slice(),
+      isSample: state.isSample, expenseSettledAt: state.expenseSettledAt
+    };
     var deletedIds = state.expenses.map(function (e) { return e.id; }).concat(state.deletedIds || []);
     var keepSlotRecords = state.slotRecords;
     var keepSlotDeletedIds = state.slotDeletedIds;
@@ -2202,9 +2288,20 @@
     state.ballRate = keepBallRate;
     state.slotSettledAt = keepSlotSettledAt;
     selectedPayer = 0;
+    showExpenseUndo("全データを消去しました。", snapshot);
     renderAll();
     syncWrite();
   });
+
+  document.getElementById("expenseUndoBtn").addEventListener("click", function () {
+    if (!expenseUndoSnapshot) return;
+    restoreExpenseResetSnapshot(expenseUndoSnapshot);
+    hideExpenseUndo();
+    selectedPayer = 0;
+    renderAll();
+    syncWrite();
+  });
+  document.getElementById("expenseUndoDismissBtn").addEventListener("click", hideExpenseUndo);
 
   document.getElementById("refreshBtn").addEventListener("click", function () {
     pollRemote();
