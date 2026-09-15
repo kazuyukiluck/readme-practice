@@ -620,6 +620,35 @@
     color: var(--ink);
   }
 
+  /* ---------- Slot: unit toggle (円/枚) ---------- */
+  .unit-input {
+    display: flex;
+    gap: 8px;
+    align-items: stretch;
+  }
+  .unit-toggle {
+    display: flex;
+    flex: 0 0 auto;
+    border: 1px solid var(--line);
+    border-radius: 9px;
+    overflow: hidden;
+  }
+  .unit-toggle button {
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 0 14px;
+    border: none;
+    background: var(--surface-2);
+    color: var(--ink-soft);
+    cursor: pointer;
+  }
+  .unit-toggle button[aria-pressed="true"] {
+    background: var(--accent);
+    color: #fff;
+  }
+  .unit-input input { flex: 1 1 auto; min-width: 0; }
+
   /* ---------- Slot: machine groups ---------- */
   .machine-group + .machine-group {
     margin-top: 16px;
@@ -663,6 +692,10 @@
   }
   .slot-field .slot-field-label {
     font-size: 10px;
+    color: var(--ink-faint);
+  }
+  .slot-field .slot-field-note {
+    font-family: "IBM Plex Mono", monospace;
     color: var(--ink-faint);
   }
   .mini-input {
@@ -885,7 +918,7 @@
 
   <div class="card">
     <h2>記録を追加</h2>
-    <p class="hint">台・人ごとに投資額と回収額を入力してください。追加すると全員に共有されます。</p>
+    <p class="hint">台・人ごとに投資と回収を入力してください。円・枚のどちらか片方でOKです。追加すると全員に共有されます。</p>
     <form class="expense-form" id="slotForm">
       <div class="field-full">
         <label for="slotMachineInput">台番号・機種名</label>
@@ -895,14 +928,27 @@
         <label>打った人</label>
         <div class="payer-toggle" id="slotPayerToggle"></div>
       </div>
-      <div>
-        <label for="slotInvestInput">投資額(円)</label>
-        <input id="slotInvestInput" type="number" min="0" step="1" inputmode="numeric" placeholder="0" />
+      <div class="field-full">
+        <label>投資</label>
+        <div class="unit-input">
+          <div class="unit-toggle" id="slotInvestUnitToggle">
+            <button type="button" data-unit="yen" aria-pressed="true">円</button>
+            <button type="button" data-unit="coin" aria-pressed="false">枚</button>
+          </div>
+          <input id="slotInvestInput" type="number" min="0" step="1" inputmode="numeric" placeholder="0" />
+        </div>
       </div>
-      <div>
-        <label for="slotPayoutInput">回収額(円)</label>
-        <input id="slotPayoutInput" type="number" min="0" step="1" inputmode="numeric" placeholder="0" />
+      <div class="field-full">
+        <label>回収</label>
+        <div class="unit-input">
+          <div class="unit-toggle" id="slotPayoutUnitToggle">
+            <button type="button" data-unit="yen" aria-pressed="true">円</button>
+            <button type="button" data-unit="coin" aria-pressed="false">枚</button>
+          </div>
+          <input id="slotPayoutInput" type="number" min="0" step="1" inputmode="numeric" placeholder="0" />
+        </div>
       </div>
+      <p class="hint" id="slotUnitHint" style="margin:0 0 4px;"></p>
       <button type="submit" class="add-btn" id="slotAddBtn">この記録を追加</button>
     </form>
   </div>
@@ -965,6 +1011,8 @@
   var state = null;
   var selectedPayer = 0;
   var selectedSlotPayer = 0;
+  var selectedInvestUnit = "yen";
+  var selectedPayoutUnit = "yen";
   var toastTimer = null;
   var isWriting = false;
   var writeQueued = false;
@@ -1393,12 +1441,25 @@
   }
 
   // ---------- slot: computations ----------
+  // A record's invest/payout can be entered as yen (invest/payout, the
+  // default) or as a medal count (investRaw/payoutRaw with unit "coin"),
+  // converted to yen at the group's current rate. These two accessors are
+  // the only place that distinction matters -- everything downstream just
+  // deals in yen.
+  function recordInvestYen(r) {
+    return r.investUnit === "coin" ? Math.round((r.investRaw || 0) * (state.slotRate || 20)) : (r.invest || 0);
+  }
+
+  function recordPayoutYen(r) {
+    return r.payoutUnit === "coin" ? Math.round((r.payoutRaw || 0) * (state.slotRate || 20)) : (r.payout || 0);
+  }
+
   function computeSlotTotals() {
     var invest = [0, 0, 0];
     var payout = [0, 0, 0];
     state.slotRecords.forEach(function (r) {
-      invest[r.payer] += r.invest;
-      payout[r.payer] += r.payout;
+      invest[r.payer] += recordInvestYen(r);
+      payout[r.payer] += recordPayoutYen(r);
     });
     var balance = [0, 1, 2].map(function (i) { return payout[i] - invest[i]; });
     var totalInvest = invest[0] + invest[1] + invest[2];
@@ -1450,7 +1511,7 @@
     var cum = [0, 0, 0];
     var series = [[{ x: 0, y: 0 }], [{ x: 0, y: 0 }], [{ x: 0, y: 0 }]];
     records.forEach(function (r, idx) {
-      cum[r.payer] += (r.payout - r.invest);
+      cum[r.payer] += (recordPayoutYen(r) - recordInvestYen(r));
       for (var i = 0; i < 3; i++) series[i].push({ x: idx + 1, y: cum[i] });
     });
     return { series: series, n: records.length };
@@ -1461,6 +1522,8 @@
     var el = document.getElementById("slotRateInput");
     if (document.activeElement === el) return;
     el.value = state.slotRate || 20;
+    var hint = document.getElementById("slotUnitHint");
+    if (hint) hint.textContent = "枚で入力すると、現在のレート(1枚" + (state.slotRate || 20) + "円)で円に換算されます。";
   }
 
   function renderSlotList() {
@@ -1479,7 +1542,7 @@
       wrap.className = "machine-group";
 
       var gInvest = 0, gPayout = 0;
-      g.records.forEach(function (r) { gInvest += r.invest; gPayout += r.payout; });
+      g.records.forEach(function (r) { gInvest += recordInvestYen(r); gPayout += recordPayoutYen(r); });
       var gDiff = gPayout - gInvest;
 
       var head = document.createElement("div");
@@ -1501,15 +1564,20 @@
 
         var investField = document.createElement("div");
         investField.className = "slot-field";
-        investField.innerHTML = '<span class="slot-field-label">投資</span>';
+        var investNote = r.investUnit === "coin" ? ' <span class="slot-field-note">(' + r.investRaw + "枚)</span>" : "";
+        investField.innerHTML = '<span class="slot-field-label">投資' + investNote + "</span>";
         var investInput = document.createElement("input");
         investInput.className = "mini-input";
         investInput.type = "number";
         investInput.min = "0";
         investInput.inputMode = "numeric";
-        investInput.value = r.invest;
+        investInput.value = recordInvestYen(r);
         investInput.addEventListener("change", function () {
+          // Editing here always sets a plain yen amount, even if the
+          // record was originally entered as a medal count.
           r.invest = Math.max(0, Math.round(Number(investInput.value)) || 0);
+          r.investUnit = "yen";
+          r.investRaw = undefined;
           renderAll();
           syncWrite();
         });
@@ -1517,15 +1585,18 @@
 
         var payoutField = document.createElement("div");
         payoutField.className = "slot-field";
-        payoutField.innerHTML = '<span class="slot-field-label">回収</span>';
+        var payoutNote = r.payoutUnit === "coin" ? ' <span class="slot-field-note">(' + r.payoutRaw + "枚)</span>" : "";
+        payoutField.innerHTML = '<span class="slot-field-label">回収' + payoutNote + "</span>";
         var payoutInput = document.createElement("input");
         payoutInput.className = "mini-input";
         payoutInput.type = "number";
         payoutInput.min = "0";
         payoutInput.inputMode = "numeric";
-        payoutInput.value = r.payout;
+        payoutInput.value = recordPayoutYen(r);
         payoutInput.addEventListener("change", function () {
           r.payout = Math.max(0, Math.round(Number(payoutInput.value)) || 0);
+          r.payoutUnit = "yen";
+          r.payoutRaw = undefined;
           renderAll();
           syncWrite();
         });
@@ -1549,7 +1620,7 @@
         row.appendChild(del);
 
         var diff = document.createElement("div");
-        var d = r.payout - r.invest;
+        var d = recordPayoutYen(r) - recordInvestYen(r);
         diff.className = "slot-diff" + (d > 0 ? " positive" : d < 0 ? " negative" : "");
         diff.textContent = yen(d) + "(差枚 " + (d >= 0 ? "+" : "") + diffMedals(d) + "枚)";
         row.appendChild(diff);
@@ -1720,7 +1791,27 @@
     body.appendChild(labelsRow);
   }
 
-  // Sets the machine/payer defaults for the next entry from the most
+  function setUnitToggle(toggleId, unit) {
+    var wrap = document.getElementById(toggleId);
+    var buttons = wrap.querySelectorAll("button");
+    for (var i = 0; i < buttons.length; i++) {
+      buttons[i].setAttribute("aria-pressed", String(buttons[i].dataset.unit === unit));
+    }
+  }
+
+  function wireUnitToggle(toggleId, onChange) {
+    var wrap = document.getElementById(toggleId);
+    var buttons = wrap.querySelectorAll("button");
+    for (var i = 0; i < buttons.length; i++) {
+      buttons[i].addEventListener("click", function (ev) {
+        var unit = ev.currentTarget.dataset.unit;
+        setUnitToggle(toggleId, unit);
+        onChange(unit);
+      });
+    }
+  }
+
+  // Sets the machine/payer/unit defaults for the next entry from the most
   // recently added slot record (falling back to this device's last pick),
   // so re-opening the page during a session still needs the fewest taps.
   function applySlotDefaults() {
@@ -1737,6 +1828,10 @@
       selectedSlotPayer = typeof prefs.slotPayer === "number" ? prefs.slotPayer : 0;
     }
     renderSlotPayerToggle();
+    selectedInvestUnit = prefs.investUnit === "coin" ? "coin" : "yen";
+    selectedPayoutUnit = prefs.payoutUnit === "coin" ? "coin" : "yen";
+    setUnitToggle("slotInvestUnitToggle", selectedInvestUnit);
+    setUnitToggle("slotPayoutUnitToggle", selectedPayoutUnit);
   }
 
   function renderAll() {
@@ -1884,6 +1979,15 @@
   setActiveTab(loadDevicePrefs().activeTab === "slot" ? "slot" : "warikan");
 
   // ---------- slot events ----------
+  wireUnitToggle("slotInvestUnitToggle", function (unit) {
+    selectedInvestUnit = unit;
+    saveDevicePrefs({ investUnit: unit });
+  });
+  wireUnitToggle("slotPayoutUnitToggle", function (unit) {
+    selectedPayoutUnit = unit;
+    saveDevicePrefs({ payoutUnit: unit });
+  });
+
   document.getElementById("slotForm").addEventListener("submit", function (ev) {
     ev.preventDefault();
     var machineInput = document.getElementById("slotMachineInput");
@@ -1891,18 +1995,26 @@
     var payoutInput = document.getElementById("slotPayoutInput");
     var machine = machineInput.value.trim();
     if (!machine) { machineInput.focus(); return; }
-    var invest = Math.max(0, Math.round(Number(investInput.value)) || 0);
-    var payout = Math.max(0, Math.round(Number(payoutInput.value)) || 0);
-    if (invest === 0 && payout === 0) { investInput.focus(); return; }
-    state.slotRecords.push({
+    var investRaw = Math.max(0, Math.round(Number(investInput.value)) || 0);
+    var payoutRaw = Math.max(0, Math.round(Number(payoutInput.value)) || 0);
+    if (investRaw === 0 && payoutRaw === 0) { investInput.focus(); return; }
+    var record = {
       id: "r" + Date.now() + Math.random().toString(16).slice(2),
       machine: machine,
       payer: selectedSlotPayer,
-      invest: invest,
-      payout: payout,
+      investUnit: selectedInvestUnit,
+      payoutUnit: selectedPayoutUnit,
       at: Date.now()
+    };
+    if (selectedInvestUnit === "coin") { record.investRaw = investRaw; record.invest = 0; }
+    else { record.invest = investRaw; }
+    if (selectedPayoutUnit === "coin") { record.payoutRaw = payoutRaw; record.payout = 0; }
+    else { record.payout = payoutRaw; }
+    state.slotRecords.push(record);
+    saveDevicePrefs({
+      lastMachine: machine, slotPayer: selectedSlotPayer,
+      investUnit: selectedInvestUnit, payoutUnit: selectedPayoutUnit
     });
-    saveDevicePrefs({ lastMachine: machine, slotPayer: selectedSlotPayer });
     investInput.value = "";
     payoutInput.value = "";
     investInput.focus();
