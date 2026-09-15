@@ -928,6 +928,12 @@
   </div>
 
   <div class="card">
+    <h2>精算方法</h2>
+    <p class="hint">乗り打ちなので、グループの収支合計を均等に割った差額をやり取りします。</p>
+    <div id="slotSettleBody"></div>
+  </div>
+
+  <div class="card">
     <h2>収支の推移</h2>
     <p class="hint">記録した順番での、人ごとの累計収支です。</p>
     <div id="slotChartBody"></div>
@@ -1403,6 +1409,22 @@
     };
   }
 
+  // 乗り打ち settlement: the group's total result (payout - invest, pooled
+  // across everyone) is split evenly, like the expense split on the 割り勘
+  // tab. Whoever's own invest/payout left them above or below that even
+  // share settles the difference with the others -- reuses the exact same
+  // debt-simplification routine as the 割り勘 tab.
+  function computeSlotSettlement() {
+    var totals = computeSlotTotals();
+    var total = totals.total;
+    var base = Math.floor(total / 3);
+    var remainder = total - base * 3;
+    var share = [base, base, base];
+    for (var i = 0; i < remainder; i++) share[i] += 1;
+    var settleBalance = [0, 1, 2].map(function (i) { return share[i] - totals.balance[i]; });
+    return { share: share, personalNet: totals.balance, settleBalance: settleBalance, total: total };
+  }
+
   function diffMedals(yenDiff) {
     var rate = state.slotRate || 20;
     return Math.round(yenDiff / rate);
@@ -1542,6 +1564,7 @@
   function renderSlotSummary() {
     var grid = document.getElementById("slotSummaryGrid");
     var data = computeSlotTotals();
+    var settle = computeSlotSettlement();
     grid.innerHTML = "";
     for (var i = 0; i < 3; i++) {
       var tile = document.createElement("div");
@@ -1560,20 +1583,28 @@
       rowPayout.className = "row";
       rowPayout.innerHTML = "<span>回収合計</span><span>" + yen(data.payout[i]) + "</span>";
 
+      var rowNet = document.createElement("div");
+      rowNet.className = "row";
+      var net = data.balance[i];
+      var netColor = net > 0 ? "var(--positive)" : net < 0 ? "var(--negative)" : "var(--ink)";
+      rowNet.innerHTML = "<span>収支(回収−投資)</span><span style=\"color:" + netColor + "\">" +
+        (net > 0 ? "+" : "") + yen(net) + "</span>";
+
       var rowMedal = document.createElement("div");
       rowMedal.className = "row";
-      var m = diffMedals(data.balance[i]);
+      var m = diffMedals(net);
       rowMedal.innerHTML = "<span>差枚(概算)</span><span>" + (m >= 0 ? "+" : "") + m + "枚</span>";
 
       var chip = document.createElement("div");
-      var b = data.balance[i];
-      var cls = b > 0 ? "positive" : b < 0 ? "negative" : "zero";
+      var sb = settle.settleBalance[i];
+      var cls = sb > 0 ? "positive" : sb < 0 ? "negative" : "zero";
       chip.className = "balance-chip " + cls;
-      chip.textContent = b > 0 ? "収支 +" + yen(b) : b < 0 ? "収支 " + yen(b) : "収支 ±0";
+      chip.textContent = sb > 0 ? "精算: 受け取り " + yen(sb) : sb < 0 ? "精算: 支払い " + yen(-sb) : "精算済み";
 
       tile.appendChild(name);
       tile.appendChild(rowInvest);
       tile.appendChild(rowPayout);
+      tile.appendChild(rowNet);
       tile.appendChild(rowMedal);
       tile.appendChild(chip);
       grid.appendChild(tile);
@@ -1585,6 +1616,42 @@
     totalBar.innerHTML =
       "<span>グループ合計</span>" +
       '<span class="amt" style="color:' + tColor + '">' + (t > 0 ? "+" : "") + yen(t) + "</span>";
+  }
+
+  function renderSlotSettlement() {
+    var body = document.getElementById("slotSettleBody");
+    var settle = computeSlotSettlement();
+    var tx = computeSettlement(settle.settleBalance);
+    body.innerHTML = "";
+
+    if (state.slotRecords.length === 0) {
+      var none = document.createElement("div");
+      none.className = "settle-done";
+      none.textContent = "まだ記録がありません。";
+      body.appendChild(none);
+      return;
+    }
+    if (tx.length === 0) {
+      var done = document.createElement("div");
+      done.className = "settle-done";
+      done.textContent = "✓ すでに均等です。精算の必要はありません。";
+      body.appendChild(done);
+      return;
+    }
+
+    var list = document.createElement("div");
+    list.className = "settle-list";
+    tx.forEach(function (t) {
+      var row = document.createElement("div");
+      row.className = "settle-row";
+      row.innerHTML =
+        '<span class="settle-name from">' + escapeHtml(memberName(t.from)) + "</span>" +
+        '<span class="settle-arrow">→</span>' +
+        '<span class="settle-name to">' + escapeHtml(memberName(t.to)) + "</span>" +
+        '<span class="settle-amount">' + yen(t.amount) + "</span>";
+      list.appendChild(row);
+    });
+    body.appendChild(list);
   }
 
   function renderSlotChart() {
@@ -1682,6 +1749,7 @@
     renderSlotRateField();
     renderSlotList();
     renderSlotSummary();
+    renderSlotSettlement();
     renderSlotChart();
   }
 
