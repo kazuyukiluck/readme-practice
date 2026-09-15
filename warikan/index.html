@@ -714,7 +714,7 @@
     <button class="reset-btn" id="resetBtn" type="button">すべてリセット</button>
   </div>
 
-  <p class="footer-note">このリンクを開いた3人で内容が共有されます(誰かが入力すると、他の人が開いたときに反映されます)。<br />ログイン不要ですが、URLを知っている人は誰でも編集できます。旅費の記録以外には使わないでください。<br />無料の外部保存サービスを利用しているため、長期間(1か月程度)アクセスがないとデータが消える場合があります。</p>
+  <p class="footer-note">このリンクを開いた3人で内容が共有されます(誰かが入力すると、他の人が開いたときに反映されます)。<br />ログイン不要ですが、URLを知っている人は誰でも編集できます。旅費の記録以外には使わないでください。</p>
 
 </div>
 
@@ -724,9 +724,10 @@
 (function () {
   "use strict";
 
-  var API_BASE = "https://jsonblob.com/api/jsonBlob";
+  var API_BASE = "https://api.jsonbin.io/v3/b";
+  var MASTER_KEY = "$2a$10$EY8gpJRsZcGfeybzb4st7eyQlSxqEVOykiupz1aTXAGdxx.lgu55u";
   var SWATCHES = ["#1b7a72", "#b06f2b", "#5a6bb5"];
-  var POLL_MS = 6000;
+  var POLL_MS = 8000;
   var NAME_SYNC_DEBOUNCE_MS = 700;
 
   var blobId = null;
@@ -766,32 +767,47 @@
     } catch (e) { return null; }
   }
 
-  // ---------- jsonblob.com storage ----------
+  // ---------- jsonbin.io storage ----------
   function createBlob(data) {
     return fetch(API_BASE, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "X-Master-Key": MASTER_KEY,
+        "X-Bin-Versioning": "false"
+      },
       body: JSON.stringify(data)
     }).then(function (res) {
       if (!res.ok) throw new Error("create failed: " + res.status);
-      var location = res.headers.get("Location") || "";
-      var id = location.split("/").filter(Boolean).pop();
-      if (!id) throw new Error("no blob id returned");
+      return res.json();
+    }).then(function (json) {
+      var id = json && json.metadata && json.metadata.id;
+      if (!id) throw new Error("no bin id returned");
       return id;
     });
   }
 
   function readBlob(id) {
-    return fetch(API_BASE + "/" + id, { cache: "no-store" }).then(function (res) {
+    return fetch(API_BASE + "/" + id, {
+      headers: { "X-Master-Key": MASTER_KEY },
+      cache: "no-store"
+    }).then(function (res) {
       if (!res.ok) throw new Error("read failed: " + res.status);
       return res.json();
+    }).then(function (json) {
+      if (!json || !json.record) throw new Error("malformed read response");
+      return json.record;
     });
   }
 
   function writeBlob(id, data) {
     return fetch(API_BASE + "/" + id, {
       method: "PUT",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "X-Master-Key": MASTER_KEY,
+        "X-Bin-Versioning": "false"
+      },
       body: JSON.stringify(data)
     }).then(function (res) {
       if (!res.ok) throw new Error("write failed: " + res.status);
