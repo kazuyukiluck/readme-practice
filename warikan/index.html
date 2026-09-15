@@ -575,6 +575,162 @@
     .payer-badge { display: none; }
   }
 
+  /* ---------- Tabs ---------- */
+  .tabbar {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .tab-btn {
+    font-family: "Zen Kaku Gothic New", sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    padding: 13px 10px;
+    border-radius: 12px;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--ink-soft);
+    cursor: pointer;
+    box-shadow: var(--shadow);
+  }
+  .tab-btn[aria-selected="true"] {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+
+  /* ---------- Slot: rate field ---------- */
+  .rate-field {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--ink-soft);
+  }
+  .rate-field input {
+    width: 52px;
+    font-family: "IBM Plex Mono", monospace;
+    font-variant-numeric: tabular-nums;
+    font-size: 13px;
+    text-align: right;
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: 7px;
+    padding: 5px 6px;
+    color: var(--ink);
+  }
+
+  /* ---------- Slot: machine groups ---------- */
+  .machine-group + .machine-group {
+    margin-top: 16px;
+    padding-top: 14px;
+    border-top: 1px dashed var(--line);
+  }
+
+  .machine-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+  .machine-name {
+    font-weight: 700;
+    font-size: 14.5px;
+  }
+  .machine-sub {
+    font-family: "IBM Plex Mono", monospace;
+    font-variant-numeric: tabular-nums;
+    font-size: 12.5px;
+    color: var(--ink-soft);
+    white-space: nowrap;
+  }
+
+  .slot-row {
+    display: grid;
+    grid-template-columns: auto 1fr 1fr auto;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 0;
+  }
+  .slot-row .payer-badge {
+    background: transparent;
+  }
+  .slot-field {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .slot-field .slot-field-label {
+    font-size: 10px;
+    color: var(--ink-faint);
+  }
+  .mini-input {
+    width: 100%;
+    font-family: "IBM Plex Mono", monospace;
+    font-variant-numeric: tabular-nums;
+    font-size: 13.5px;
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 7px 8px;
+    color: var(--ink);
+  }
+  .mini-input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+  .slot-diff {
+    grid-column: 1 / -1;
+    font-size: 11.5px;
+    color: var(--ink-faint);
+    padding-left: 2px;
+  }
+  .slot-diff.positive { color: var(--positive); }
+  .slot-diff.negative { color: var(--negative); }
+
+  /* ---------- Slot: group total bar ---------- */
+  .group-total-bar {
+    margin-top: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 12px 14px;
+    font-weight: 700;
+    font-size: 14px;
+  }
+  .group-total-bar .amt {
+    font-family: "IBM Plex Mono", monospace;
+    font-variant-numeric: tabular-nums;
+    font-size: 16px;
+  }
+
+  /* ---------- Slot: chart ---------- */
+  .chart-legend {
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+    font-size: 12px;
+    color: var(--ink-soft);
+  }
+  .chart-legend .item {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .chart-legend .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+  }
+  .chart-empty {
+    text-align: center;
+    color: var(--ink-faint);
+    font-size: 13.5px;
+    padding: 20px 0;
+  }
+
   /* ---------- Toast ---------- */
   .toast {
     position: fixed;
@@ -660,6 +816,11 @@
     <div class="members" id="members"></div>
   </div>
 
+  <div class="tabbar" role="tablist">
+    <button type="button" class="tab-btn" id="tabBtnWarikan" role="tab" aria-selected="true">💰 割り勘</button>
+    <button type="button" class="tab-btn" id="tabBtnSlot" role="tab" aria-selected="false">🎰 スロット収支</button>
+  </div>
+
   <div id="sampleBanner" class="banner" hidden>
     <span>📝 これはサンプルデータです。入力を始めると自動でクリアされます。</span>
     <button id="clearSampleBtn" type="button">サンプルを消す</button>
@@ -669,6 +830,8 @@
     <span id="errorBannerText">通信に失敗しました。表示中の内容は最新でない可能性があります。</span>
     <button id="retryBtn" type="button">再試行</button>
   </div>
+
+  <div id="tabWarikan">
 
   <div class="card">
     <h2>支払いを記録する</h2>
@@ -716,6 +879,68 @@
 
   <p class="footer-note">このリンクを開いた3人で内容が共有されます(誰かが入力すると、他の人が開いたときに反映されます)。<br />ログイン不要ですが、URLを知っている人は誰でも編集できます。旅費の記録以外には使わないでください。</p>
 
+  </div>
+
+  <div id="tabSlot" hidden>
+
+  <div class="card">
+    <h2>記録を追加</h2>
+    <p class="hint">台・人ごとに投資額と回収額を入力してください。追加すると全員に共有されます。</p>
+    <form class="expense-form" id="slotForm">
+      <div class="field-full">
+        <label for="slotMachineInput">台番号・機種名</label>
+        <input id="slotMachineInput" type="text" placeholder="例:番長3 #123" maxlength="30" required />
+      </div>
+      <div class="field-full">
+        <label>打った人</label>
+        <div class="payer-toggle" id="slotPayerToggle"></div>
+      </div>
+      <div>
+        <label for="slotInvestInput">投資額(円)</label>
+        <input id="slotInvestInput" type="number" min="0" step="1" inputmode="numeric" placeholder="0" />
+      </div>
+      <div>
+        <label for="slotPayoutInput">回収額(円)</label>
+        <input id="slotPayoutInput" type="number" min="0" step="1" inputmode="numeric" placeholder="0" />
+      </div>
+      <button type="submit" class="add-btn" id="slotAddBtn">この記録を追加</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <div class="ledger-head">
+      <h2 style="margin:0;">台・人ごとの記録</h2>
+      <div class="rate-field">
+        <label for="slotRateInput">1枚</label>
+        <input id="slotRateInput" type="number" min="1" step="1" inputmode="numeric" />
+        <label for="slotRateInput">円</label>
+      </div>
+    </div>
+    <p class="hint">金額はタップして直接編集できます。差枚はレートからの概算です。</p>
+    <div id="slotListBody"></div>
+  </div>
+
+  <div class="card">
+    <h2>人ごとの収支</h2>
+    <p class="hint">回収合計 − 投資合計</p>
+    <div class="summary-grid" id="slotSummaryGrid"></div>
+    <div class="group-total-bar" id="slotGroupTotal"></div>
+  </div>
+
+  <div class="card">
+    <h2>収支の推移</h2>
+    <p class="hint">記録した順番での、人ごとの累計収支です。</p>
+    <div id="slotChartBody"></div>
+  </div>
+
+  <div style="display:flex; justify-content:center;">
+    <button class="reset-btn" id="slotResetBtn" type="button">スロットデータをすべてリセット</button>
+  </div>
+
+  <p class="footer-note">スロットの記録も割り勘と同じリンクで共有されます。台・機種名でグループ化して表示しています。</p>
+
+  </div>
+
 </div>
 
 <div class="toast" id="toast"></div>
@@ -733,10 +958,12 @@
   var blobId = null;
   var state = null;
   var selectedPayer = 0;
+  var selectedSlotPayer = 0;
   var toastTimer = null;
   var isWriting = false;
   var writeQueued = false;
   var nameSyncTimer = null;
+  var activeTab = "warikan";
 
   function defaultState() {
     var now = Date.now();
@@ -750,6 +977,9 @@
       ],
       deletedIds: [],
       isSample: true,
+      slotRecords: [],
+      slotDeletedIds: [],
+      slotRate: 20,
       updatedAt: new Date(now).toISOString()
     };
   }
@@ -765,6 +995,24 @@
       var raw = localStorage.getItem(localKey());
       return raw ? JSON.parse(raw) : null;
     } catch (e) { return null; }
+  }
+
+  // Per-device convenience only (never synced): last-used tab, machine name
+  // and payer, so re-opening the page or logging the next record needs the
+  // fewest possible taps.
+  function loadDevicePrefs() {
+    try {
+      var raw = localStorage.getItem("warikan-device-prefs");
+      return raw ? JSON.parse(raw) : {};
+    } catch (e) { return {}; }
+  }
+
+  function saveDevicePrefs(patch) {
+    try {
+      var prefs = loadDevicePrefs();
+      Object.keys(patch).forEach(function (k) { prefs[k] = patch[k]; });
+      localStorage.setItem("warikan-device-prefs", JSON.stringify(prefs));
+    } catch (e) { /* ignore */ }
   }
 
   // ---------- jsonbin.io storage ----------
@@ -821,23 +1069,43 @@
     return out;
   }
 
+  // Union-by-id merge used for both the expense ledger and the slot log:
+  // take every record either side knows, let deletions win, sort by time.
+  function mergeRecords(remoteList, localList, remoteDeleted, localDeleted) {
+    var deletedIds = uniq((remoteDeleted || []).concat(localDeleted || []));
+    var byId = {};
+    (remoteList || []).forEach(function (r) { byId[r.id] = r; });
+    (localList || []).forEach(function (r) { byId[r.id] = r; });
+    var records = Object.keys(byId).map(function (k) { return byId[k]; })
+      .filter(function (r) { return deletedIds.indexOf(r.id) === -1; })
+      .sort(function (a, b) { return (a.at || 0) - (b.at || 0); });
+    return { records: records, deletedIds: deletedIds };
+  }
+
   function mergeStates(remote, local) {
     if (!remote) return local;
-    var deletedIds = uniq((remote.deletedIds || []).concat(local.deletedIds || []));
-    var byId = {};
-    (remote.expenses || []).forEach(function (e) { byId[e.id] = e; });
-    (local.expenses || []).forEach(function (e) { byId[e.id] = e; });
-    var expenses = Object.keys(byId).map(function (k) { return byId[k]; })
-      .filter(function (e) { return deletedIds.indexOf(e.id) === -1; })
-      .sort(function (a, b) { return (a.at || 0) - (b.at || 0); });
+    var exp = mergeRecords(remote.expenses, local.expenses, remote.deletedIds, local.deletedIds);
+    var slot = mergeRecords(remote.slotRecords, local.slotRecords, remote.slotDeletedIds, local.slotDeletedIds);
     return {
       tripTitle: local.tripTitle,
       members: local.members,
-      expenses: expenses,
-      deletedIds: deletedIds,
-      isSample: local.isSample && expenses.every(function (e) { return e.sample; }),
+      expenses: exp.records,
+      deletedIds: exp.deletedIds,
+      isSample: local.isSample && exp.records.every(function (e) { return e.sample; }),
+      slotRecords: slot.records,
+      slotDeletedIds: slot.deletedIds,
+      slotRate: local.slotRate || remote.slotRate || 20,
       updatedAt: new Date().toISOString()
     };
+  }
+
+  // Fills in fields added after a trip was first created, so a bin saved
+  // before the slot feature existed doesn't crash the new screens.
+  function normalizeState(s) {
+    s.slotRecords = s.slotRecords || [];
+    s.slotDeletedIds = s.slotDeletedIds || [];
+    s.slotRate = s.slotRate || 20;
+    return s;
   }
 
   // ---------- UI helpers ----------
@@ -961,22 +1229,34 @@
     }
   }
 
-  function renderPayerToggle() {
-    var wrap = document.getElementById("payerToggle");
+  function renderMemberToggle(containerId, selected, onSelect) {
+    var wrap = document.getElementById(containerId);
     wrap.innerHTML = "";
     for (var i = 0; i < 3; i++) {
       (function (i) {
         var btn = document.createElement("button");
         btn.type = "button";
         btn.textContent = memberName(i);
-        btn.setAttribute("aria-pressed", String(selectedPayer === i));
-        btn.addEventListener("click", function () {
-          selectedPayer = i;
-          renderPayerToggle();
-        });
+        btn.setAttribute("aria-pressed", String(selected === i));
+        btn.addEventListener("click", function () { onSelect(i); });
         wrap.appendChild(btn);
       })(i);
     }
+  }
+
+  function renderPayerToggle() {
+    renderMemberToggle("payerToggle", selectedPayer, function (i) {
+      selectedPayer = i;
+      renderPayerToggle();
+    });
+  }
+
+  function renderSlotPayerToggle() {
+    renderMemberToggle("slotPayerToggle", selectedSlotPayer, function (i) {
+      selectedSlotPayer = i;
+      saveDevicePrefs({ slotPayer: i });
+      renderSlotPayerToggle();
+    });
   }
 
   function renderLedger() {
@@ -1106,6 +1386,292 @@
     body.appendChild(list);
   }
 
+  // ---------- slot: computations ----------
+  function computeSlotTotals() {
+    var invest = [0, 0, 0];
+    var payout = [0, 0, 0];
+    state.slotRecords.forEach(function (r) {
+      invest[r.payer] += r.invest;
+      payout[r.payer] += r.payout;
+    });
+    var balance = [0, 1, 2].map(function (i) { return payout[i] - invest[i]; });
+    var totalInvest = invest[0] + invest[1] + invest[2];
+    var totalPayout = payout[0] + payout[1] + payout[2];
+    return {
+      invest: invest, payout: payout, balance: balance,
+      totalInvest: totalInvest, totalPayout: totalPayout, total: totalPayout - totalInvest
+    };
+  }
+
+  function diffMedals(yenDiff) {
+    var rate = state.slotRate || 20;
+    return Math.round(yenDiff / rate);
+  }
+
+  function groupSlotRecords() {
+    var groups = {};
+    state.slotRecords.forEach(function (r) {
+      if (!groups[r.machine]) groups[r.machine] = { name: r.machine, records: [], lastAt: 0 };
+      groups[r.machine].records.push(r);
+      if (r.at > groups[r.machine].lastAt) groups[r.machine].lastAt = r.at;
+    });
+    var list = Object.keys(groups).map(function (k) { return groups[k]; });
+    list.forEach(function (g) {
+      g.records.sort(function (a, b) { return (a.at || 0) - (b.at || 0); });
+    });
+    list.sort(function (a, b) { return b.lastAt - a.lastAt; });
+    return list;
+  }
+
+  function computeSlotSeries() {
+    var records = state.slotRecords.slice().sort(function (a, b) { return (a.at || 0) - (b.at || 0); });
+    var cum = [0, 0, 0];
+    var series = [[{ x: 0, y: 0 }], [{ x: 0, y: 0 }], [{ x: 0, y: 0 }]];
+    records.forEach(function (r, idx) {
+      cum[r.payer] += (r.payout - r.invest);
+      for (var i = 0; i < 3; i++) series[i].push({ x: idx + 1, y: cum[i] });
+    });
+    return { series: series, n: records.length };
+  }
+
+  // ---------- slot: rendering ----------
+  function renderSlotRateField() {
+    var el = document.getElementById("slotRateInput");
+    if (document.activeElement === el) return;
+    el.value = state.slotRate || 20;
+  }
+
+  function renderSlotList() {
+    var body = document.getElementById("slotListBody");
+    body.innerHTML = "";
+    var groups = groupSlotRecords();
+    if (groups.length === 0) {
+      var empty = document.createElement("div");
+      empty.className = "ledger-empty";
+      empty.textContent = "まだ記録がありません。";
+      body.appendChild(empty);
+      return;
+    }
+    groups.forEach(function (g) {
+      var wrap = document.createElement("div");
+      wrap.className = "machine-group";
+
+      var gInvest = 0, gPayout = 0;
+      g.records.forEach(function (r) { gInvest += r.invest; gPayout += r.payout; });
+      var gDiff = gPayout - gInvest;
+
+      var head = document.createElement("div");
+      head.className = "machine-head";
+      head.innerHTML =
+        '<span class="machine-name">' + escapeHtml(g.name) + "</span>" +
+        '<span class="machine-sub">' + yen(gDiff) + "(差枚 " + (gDiff >= 0 ? "+" : "") + diffMedals(gDiff) + ")</span>";
+      wrap.appendChild(head);
+
+      g.records.forEach(function (r) {
+        var row = document.createElement("div");
+        row.className = "slot-row";
+
+        var badge = document.createElement("span");
+        badge.className = "payer-badge";
+        badge.style.border = "1px solid " + SWATCHES[r.payer];
+        badge.style.color = SWATCHES[r.payer];
+        badge.textContent = memberName(r.payer);
+
+        var investField = document.createElement("div");
+        investField.className = "slot-field";
+        investField.innerHTML = '<span class="slot-field-label">投資</span>';
+        var investInput = document.createElement("input");
+        investInput.className = "mini-input";
+        investInput.type = "number";
+        investInput.min = "0";
+        investInput.inputMode = "numeric";
+        investInput.value = r.invest;
+        investInput.addEventListener("change", function () {
+          r.invest = Math.max(0, Math.round(Number(investInput.value)) || 0);
+          renderAll();
+          syncWrite();
+        });
+        investField.appendChild(investInput);
+
+        var payoutField = document.createElement("div");
+        payoutField.className = "slot-field";
+        payoutField.innerHTML = '<span class="slot-field-label">回収</span>';
+        var payoutInput = document.createElement("input");
+        payoutInput.className = "mini-input";
+        payoutInput.type = "number";
+        payoutInput.min = "0";
+        payoutInput.inputMode = "numeric";
+        payoutInput.value = r.payout;
+        payoutInput.addEventListener("change", function () {
+          r.payout = Math.max(0, Math.round(Number(payoutInput.value)) || 0);
+          renderAll();
+          syncWrite();
+        });
+        payoutField.appendChild(payoutInput);
+
+        var del = document.createElement("button");
+        del.className = "ledger-del";
+        del.type = "button";
+        del.setAttribute("aria-label", "この記録を削除");
+        del.textContent = "×";
+        del.addEventListener("click", function () {
+          state.slotRecords = state.slotRecords.filter(function (x) { return x.id !== r.id; });
+          state.slotDeletedIds.push(r.id);
+          renderAll();
+          syncWrite();
+        });
+
+        row.appendChild(badge);
+        row.appendChild(investField);
+        row.appendChild(payoutField);
+        row.appendChild(del);
+
+        var diff = document.createElement("div");
+        var d = r.payout - r.invest;
+        diff.className = "slot-diff" + (d > 0 ? " positive" : d < 0 ? " negative" : "");
+        diff.textContent = yen(d) + "(差枚 " + (d >= 0 ? "+" : "") + diffMedals(d) + "枚)";
+        row.appendChild(diff);
+
+        wrap.appendChild(row);
+      });
+
+      body.appendChild(wrap);
+    });
+  }
+
+  function renderSlotSummary() {
+    var grid = document.getElementById("slotSummaryGrid");
+    var data = computeSlotTotals();
+    grid.innerHTML = "";
+    for (var i = 0; i < 3; i++) {
+      var tile = document.createElement("div");
+      tile.className = "tile";
+      tile.style.borderTop = "3px solid " + SWATCHES[i];
+
+      var name = document.createElement("div");
+      name.className = "name";
+      name.textContent = memberName(i);
+
+      var rowInvest = document.createElement("div");
+      rowInvest.className = "row";
+      rowInvest.innerHTML = "<span>投資合計</span><span>" + yen(data.invest[i]) + "</span>";
+
+      var rowPayout = document.createElement("div");
+      rowPayout.className = "row";
+      rowPayout.innerHTML = "<span>回収合計</span><span>" + yen(data.payout[i]) + "</span>";
+
+      var rowMedal = document.createElement("div");
+      rowMedal.className = "row";
+      var m = diffMedals(data.balance[i]);
+      rowMedal.innerHTML = "<span>差枚(概算)</span><span>" + (m >= 0 ? "+" : "") + m + "枚</span>";
+
+      var chip = document.createElement("div");
+      var b = data.balance[i];
+      var cls = b > 0 ? "positive" : b < 0 ? "negative" : "zero";
+      chip.className = "balance-chip " + cls;
+      chip.textContent = b > 0 ? "収支 +" + yen(b) : b < 0 ? "収支 " + yen(b) : "収支 ±0";
+
+      tile.appendChild(name);
+      tile.appendChild(rowInvest);
+      tile.appendChild(rowPayout);
+      tile.appendChild(rowMedal);
+      tile.appendChild(chip);
+      grid.appendChild(tile);
+    }
+
+    var totalBar = document.getElementById("slotGroupTotal");
+    var t = data.total;
+    var tColor = t > 0 ? "var(--positive)" : t < 0 ? "var(--negative)" : "var(--ink)";
+    totalBar.innerHTML =
+      "<span>グループ合計</span>" +
+      '<span class="amt" style="color:' + tColor + '">' + (t > 0 ? "+" : "") + yen(t) + "</span>";
+  }
+
+  function renderSlotChart() {
+    var body = document.getElementById("slotChartBody");
+    body.innerHTML = "";
+    var data = computeSlotSeries();
+    if (data.n === 0) {
+      var empty = document.createElement("div");
+      empty.className = "chart-empty";
+      empty.textContent = "記録が増えるとここにグラフが表示されます。";
+      body.appendChild(empty);
+      return;
+    }
+
+    var allY = [];
+    data.series.forEach(function (s) { s.forEach(function (p) { allY.push(p.y); }); });
+    var minY = Math.min(0, Math.min.apply(null, allY));
+    var maxY = Math.max(0, Math.max.apply(null, allY));
+    if (minY === maxY) { minY -= 1000; maxY += 1000; }
+    var pad = (maxY - minY) * 0.12;
+    minY -= pad; maxY += pad;
+
+    var W = 100, H = 46, padL = 3, padR = 3, padT = 4, padB = 4;
+    var plotW = W - padL - padR, plotH = H - padT - padB;
+    var n = data.n;
+    function xPos(x) { return padL + (x / n) * plotW; }
+    function yPos(y) { return padT + (1 - (y - minY) / (maxY - minY)) * plotH; }
+
+    var svg = [];
+    svg.push('<svg viewBox="0 0 ' + W + " " + H + '" preserveAspectRatio="none" style="width:100%; height:170px; display:block;">');
+    var zeroY = yPos(0).toFixed(2);
+    svg.push('<line x1="' + padL + '" y1="' + zeroY + '" x2="' + (W - padR) + '" y2="' + zeroY +
+      '" stroke="var(--ink-faint)" stroke-width="0.3" stroke-dasharray="1,1" />');
+    data.series.forEach(function (s, i) {
+      var d = s.map(function (p, idx) {
+        return (idx === 0 ? "M" : "L") + xPos(p.x).toFixed(2) + "," + yPos(p.y).toFixed(2);
+      }).join(" ");
+      svg.push('<path d="' + d + '" fill="none" stroke="' + SWATCHES[i] +
+        '" stroke-width="0.8" stroke-linejoin="round" stroke-linecap="round" />');
+      var last = s[s.length - 1];
+      svg.push('<circle cx="' + xPos(last.x).toFixed(2) + '" cy="' + yPos(last.y).toFixed(2) +
+        '" r="1.1" fill="' + SWATCHES[i] + '" />');
+    });
+    svg.push("</svg>");
+
+    var chartEl = document.createElement("div");
+    chartEl.innerHTML = svg.join("");
+    body.appendChild(chartEl);
+
+    var labelsRow = document.createElement("div");
+    labelsRow.className = "chart-legend";
+    labelsRow.style.marginTop = "6px";
+    labelsRow.style.marginBottom = "0";
+    for (var i = 0; i < 3; i++) {
+      var lastPt = data.series[i][data.series[i].length - 1];
+      var color = lastPt.y > 0 ? "var(--positive)" : lastPt.y < 0 ? "var(--negative)" : "var(--ink-soft)";
+      var item = document.createElement("span");
+      item.className = "item";
+      item.innerHTML =
+        '<span class="dot" style="background:' + SWATCHES[i] + '"></span>' +
+        '<strong style="color:var(--ink)">' + escapeHtml(memberName(i)) + "</strong> " +
+        '<span style="font-family:\'IBM Plex Mono\',monospace; color:' + color + '">' +
+        (lastPt.y > 0 ? "+" : "") + yen(lastPt.y) + "</span>";
+      labelsRow.appendChild(item);
+    }
+    body.appendChild(labelsRow);
+  }
+
+  // Sets the machine/payer defaults for the next entry from the most
+  // recently added slot record (falling back to this device's last pick),
+  // so re-opening the page during a session still needs the fewest taps.
+  function applySlotDefaults() {
+    var records = state.slotRecords || [];
+    var last = records.reduce(function (acc, r) { return (!acc || r.at > acc.at) ? r : acc; }, null);
+    var prefs = loadDevicePrefs();
+    var machineEl = document.getElementById("slotMachineInput");
+    if (document.activeElement === machineEl) return;
+    if (last) {
+      machineEl.value = last.machine;
+      selectedSlotPayer = last.payer;
+    } else {
+      machineEl.value = prefs.lastMachine || "";
+      selectedSlotPayer = typeof prefs.slotPayer === "number" ? prefs.slotPayer : 0;
+    }
+    renderSlotPayerToggle();
+  }
+
   function renderAll() {
     renderTripTitle();
     renderMembers();
@@ -1113,6 +1679,10 @@
     renderLedger();
     renderSummary();
     renderSettlement();
+    renderSlotRateField();
+    renderSlotList();
+    renderSlotSummary();
+    renderSlotChart();
   }
 
   // ---------- sync ----------
@@ -1152,7 +1722,7 @@
     readBlob(blobId).then(function (remote) {
       setErrorBanner(false);
       if (remote && remote.updatedAt !== state.updatedAt) {
-        state = remote;
+        state = normalizeState(remote);
         saveLocalCache();
         renderAll();
       }
@@ -1183,17 +1753,19 @@
       blobId = id;
       var cached = loadLocalCache();
       readBlob(id).then(function (remote) {
-        state = remote;
+        state = normalizeState(remote);
         saveLocalCache();
         selectedPayer = 0;
         renderAll();
+        applySlotDefaults();
         showApp();
         setSyncPill("online", "🟢 同期済み");
       }).catch(function () {
         if (cached) {
-          state = cached;
+          state = normalizeState(cached);
           selectedPayer = 0;
           renderAll();
+          applySlotDefaults();
           showApp();
           setSyncPill("offline", "⚠️ オフライン");
           setErrorBanner(true, "最新の状態を取得できませんでした。前回表示した内容を表示しています。");
@@ -1215,6 +1787,7 @@
       saveLocalCache();
       selectedPayer = 0;
       renderAll();
+      applySlotDefaults();
       showApp();
       setSyncPill("online", "🟢 同期済み");
       showToast("新しい旅行を作成しました。「🔗 共有」でリンクを送ってください");
@@ -1227,6 +1800,61 @@
   document.getElementById("tripTitle").addEventListener("input", function (ev) {
     state.tripTitle = ev.target.value;
     scheduleNameSync();
+  });
+
+  // ---------- tabs ----------
+  function setActiveTab(tab) {
+    activeTab = tab;
+    saveDevicePrefs({ activeTab: tab });
+    document.getElementById("tabWarikan").hidden = tab !== "warikan";
+    document.getElementById("tabSlot").hidden = tab !== "slot";
+    document.getElementById("tabBtnWarikan").setAttribute("aria-selected", String(tab === "warikan"));
+    document.getElementById("tabBtnSlot").setAttribute("aria-selected", String(tab === "slot"));
+  }
+  document.getElementById("tabBtnWarikan").addEventListener("click", function () { setActiveTab("warikan"); });
+  document.getElementById("tabBtnSlot").addEventListener("click", function () { setActiveTab("slot"); });
+  setActiveTab(loadDevicePrefs().activeTab === "slot" ? "slot" : "warikan");
+
+  // ---------- slot events ----------
+  document.getElementById("slotForm").addEventListener("submit", function (ev) {
+    ev.preventDefault();
+    var machineInput = document.getElementById("slotMachineInput");
+    var investInput = document.getElementById("slotInvestInput");
+    var payoutInput = document.getElementById("slotPayoutInput");
+    var machine = machineInput.value.trim();
+    if (!machine) { machineInput.focus(); return; }
+    var invest = Math.max(0, Math.round(Number(investInput.value)) || 0);
+    var payout = Math.max(0, Math.round(Number(payoutInput.value)) || 0);
+    if (invest === 0 && payout === 0) { investInput.focus(); return; }
+    state.slotRecords.push({
+      id: "r" + Date.now() + Math.random().toString(16).slice(2),
+      machine: machine,
+      payer: selectedSlotPayer,
+      invest: invest,
+      payout: payout,
+      at: Date.now()
+    });
+    saveDevicePrefs({ lastMachine: machine, slotPayer: selectedSlotPayer });
+    investInput.value = "";
+    payoutInput.value = "";
+    investInput.focus();
+    renderAll();
+    syncWrite();
+  });
+
+  document.getElementById("slotRateInput").addEventListener("change", function (ev) {
+    state.slotRate = Math.max(1, Math.round(Number(ev.target.value)) || 20);
+    renderAll();
+    syncWrite();
+  });
+
+  document.getElementById("slotResetBtn").addEventListener("click", function () {
+    if (!confirm("スロットの記録をすべて削除しますか?(割り勘のデータは変更されません)")) return;
+    var deletedIds = state.slotRecords.map(function (r) { return r.id; }).concat(state.slotDeletedIds || []);
+    state.slotRecords = [];
+    state.slotDeletedIds = uniq(deletedIds);
+    renderAll();
+    syncWrite();
   });
 
   document.getElementById("clearSampleBtn").addEventListener("click", function () {
@@ -1260,10 +1888,16 @@
   });
 
   document.getElementById("resetBtn").addEventListener("click", function () {
-    if (!confirm("入力した内容をすべて削除して、最初からやり直しますか?(全員に反映されます)")) return;
+    if (!confirm("入力した内容をすべて削除して、最初からやり直しますか?(全員に反映されます。スロットの記録は変更されません)")) return;
     var deletedIds = state.expenses.map(function (e) { return e.id; }).concat(state.deletedIds || []);
+    var keepSlotRecords = state.slotRecords;
+    var keepSlotDeletedIds = state.slotDeletedIds;
+    var keepSlotRate = state.slotRate;
     state = defaultState();
     state.deletedIds = uniq(deletedIds);
+    state.slotRecords = keepSlotRecords;
+    state.slotDeletedIds = keepSlotDeletedIds;
+    state.slotRate = keepSlotRate;
     selectedPayer = 0;
     renderAll();
     syncWrite();
